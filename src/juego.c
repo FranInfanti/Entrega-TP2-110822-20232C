@@ -30,6 +30,24 @@ struct juego {
 };
 
 /*
+ * Recibe un juego y la capacidad para reservar el hash.
+ * 
+ * Reserva la memoria para un hash y devuele un puntero a este.
+ * 
+ * En caso de error libera toda le memoria reservada para juego 
+ * y devuelve NULL.
+ */
+hash_t *reservar_hash(juego_t *juego, size_t capacidad)
+{
+	hash_t *hash = hash_crear(capacidad);
+	if (!hash) {
+		juego_destruir(juego);
+		return NULL;
+	}
+	return hash;
+}
+
+/*
  * Recibe un pokemon y un void* a una lista.
  * 
  * Inserta el pokemon en la ultima posicion de la lista. 
@@ -91,40 +109,60 @@ bool existe_pokemon(lista_t *listado, const char **nombres,
 }
 
 /*
+ * Recibe un hash con los pokemones del jugador, otro hash con los ataques que ya uso,
+ * la jugada que hizo el jugador, un doble puntero a pokemon y a ataque.
+ * 
+ * Valida si la jugada hecha por el usuario es valida, en caso de serlo modifica el 
+ * puntero a pokemon para que apunte al pokemon seleccionado y hace lo mismo con el ataque.
+ * 
+ * Devuelve true si la jugada es valida y false en caso contrario. 
+ */
+bool validar_jugada(hash_t *pokemones, hash_t *ataques_usados, jugada_t jugada,
+		    pokemon_t **pokemon, const struct ataque **ataque)
+{
+	if (hash_contiene(ataques_usados, jugada.ataque))
+		return false;
+
+	*pokemon = hash_obtener(pokemones, jugada.pokemon);
+	if (!*pokemon)
+		return false;
+
+	*ataque = pokemon_buscar_ataque(*pokemon, jugada.ataque);
+
+	return !!pokemon && !!ataque;
+}
+
+/*
  * Recibe el tipo de un ataque y el tipo de ataque de su adversario. 
  * 
  * Devuelve la efectividad del ataque actual respecto al adversario.
  */
-RESULTADO_ATAQUE determinar_efectividad(enum TIPO actual, enum TIPO adversario)
+RESULTADO_ATAQUE efectividad(enum TIPO actual, enum TIPO adversario)
 {
-	if (actual == FUEGO && adversario == PLANTA)
-		return ATAQUE_EFECTIVO;
+	if (actual == NORMAL)
+		return ATAQUE_REGULAR;
 
-	if (actual == PLANTA && adversario == ROCA)
-		return ATAQUE_EFECTIVO;
+	enum TIPO tipos[] = { FUEGO, PLANTA, ROCA, ELECTRICO, AGUA };
+	int pos_actual;
+	int pos_adversario;
 
-	if (actual == ROCA && adversario == ELECTRICO)
-		return ATAQUE_EFECTIVO;
+	for (int i = 0; i < sizeof(tipos) / sizeof(int); i++) {
+		if (tipos[i] == actual)
+			pos_actual = i;
+		else if (tipos[i] == adversario)
+			pos_adversario = i;
+	}
 
-	if (actual == ELECTRICO && adversario == AGUA)
-		return ATAQUE_EFECTIVO;
+	if ((actual == FUEGO && adversario == AGUA))
+		pos_adversario = -1;
 
 	if (actual == AGUA && adversario == FUEGO)
+		pos_actual = 5;
+
+	if (pos_actual - pos_adversario == -1)
 		return ATAQUE_EFECTIVO;
 
-	if (actual == FUEGO && adversario == AGUA)
-		return ATAQUE_INEFECTIVO;
-
-	if (actual == AGUA && adversario == ELECTRICO)
-		return ATAQUE_INEFECTIVO;
-
-	if (actual == ELECTRICO && adversario == ROCA)
-		return ATAQUE_INEFECTIVO;
-
-	if (actual == ROCA && adversario == PLANTA)
-		return ATAQUE_INEFECTIVO;
-
-	if (actual == PLANTA && adversario == FUEGO)
+	if (pos_actual - pos_adversario == 1)
 		return ATAQUE_INEFECTIVO;
 
 	return ATAQUE_REGULAR;
@@ -152,33 +190,25 @@ juego_t *juego_crear()
 
 	juego->pokemones = lista_crear();
 	if (!juego->pokemones) {
-		juego_destruir(juego);
+		free(juego);
 		return NULL;
 	}
 
-	juego->usuario.pokemones = hash_crear(MAX_POKEMONES);
-	if (!juego->usuario.pokemones) {
-		juego_destruir(juego);
+	juego->usuario.pokemones = reservar_hash(juego, MAX_POKEMONES);
+	if (!juego->usuario.pokemones)
 		return NULL;
-	}
 
-	juego->usuario.ataques_usados = hash_crear(MAX_ATAQUES);
-	if (!juego->usuario.ataques_usados) {
-		juego_destruir(juego);
+	juego->usuario.ataques_usados = reservar_hash(juego, MAX_ATAQUES);
+	if (!juego->usuario.ataques_usados)
 		return NULL;
-	}
 
-	juego->ia.pokemones = hash_crear(MAX_POKEMONES);
-	if (!juego->ia.pokemones) {
-		juego_destruir(juego);
+	juego->ia.pokemones = reservar_hash(juego, MAX_POKEMONES);
+	if (!juego->ia.pokemones)
 		return NULL;
-	}
 
-	juego->ia.ataques_usados = hash_crear(MAX_ATAQUES);
-	if (!juego->ia.ataques_usados) {
-		juego_destruir(juego);
+	juego->ia.ataques_usados = reservar_hash(juego, MAX_ATAQUES);
+	if (!juego->ia.ataques_usados)
 		return NULL;
-	}
 
 	return juego;
 }
@@ -242,41 +272,37 @@ resultado_jugada_t juego_jugar_turno(juego_t *juego, jugada_t jugada_jugador1,
 				     jugada_t jugada_jugador2)
 {
 	resultado_jugada_t jugada = { .jugador1 = 0, .jugador2 = 0 };
-
 	if (!juego)
 		return jugada;
 
-	if (hash_contiene(juego->usuario.ataques_usados,
-			  jugada_jugador1.ataque))
+	pokemon_t *pokemon_jugador1;
+	const struct ataque *ataque_jugador1;
+	if (!validar_jugada(juego->usuario.pokemones,
+			    juego->usuario.ataques_usados, jugada_jugador1,
+			    &pokemon_jugador1, &ataque_jugador1))
 		return jugada;
 
-	if (hash_contiene(juego->ia.ataques_usados, jugada_jugador2.ataque))
+	pokemon_t *pokemon_jugador2;
+	const struct ataque *ataque_jugador2;
+	if (!validar_jugada(juego->ia.pokemones, juego->ia.ataques_usados,
+			    jugada_jugador2, &pokemon_jugador2,
+			    &ataque_jugador2))
 		return jugada;
 
-	pokemon_t *pokemon_jugador1 =
-		hash_obtener(juego->usuario.pokemones, jugada_jugador1.pokemon);
-	pokemon_t *pokemon_jugador2 =
-		hash_obtener(juego->ia.pokemones, jugada_jugador2.pokemon);
-	if (!pokemon_jugador1 || !pokemon_jugador2)
-		return jugada;
+	jugada.jugador1 =
+		efectividad(ataque_jugador1->tipo, ataque_jugador2->tipo);
+	jugada.jugador2 =
+		efectividad(ataque_jugador2->tipo, ataque_jugador1->tipo);
 
-	const struct ataque *ataque_jugador1 =
-		pokemon_buscar_ataque(pokemon_jugador1, jugada_jugador1.ataque);
-	const struct ataque *ataque_jugador2 =
-		pokemon_buscar_ataque(pokemon_jugador2, jugada_jugador2.ataque);
-	if (!ataque_jugador1 || !ataque_jugador2)
-		return jugada;
+	hash_insertar(juego->usuario.ataques_usados, jugada_jugador1.ataque,
+		      (void *)ataque_jugador1, NULL);
+	hash_insertar(juego->ia.ataques_usados, jugada_jugador2.ataque,
+		      (void *)ataque_jugador2, NULL);
 
-	jugada.jugador1 = determinar_efectividad(ataque_jugador1->tipo,
-						 ataque_jugador2->tipo);
-	jugada.jugador2 = determinar_efectividad(ataque_jugador2->tipo,
-						 ataque_jugador1->tipo);
-
-	hash_insertar(juego->usuario.ataques_usados, jugada_jugador1.ataque, (void *)ataque_jugador1, NULL);
-	hash_insertar(juego->ia.pokemones, jugada_jugador2.ataque, (void *)ataque_jugador2, NULL);
-
-	juego->usuario.puntos += determinar_puntos((int)ataque_jugador1->poder, jugada.jugador1);
-	juego->ia.puntos += determinar_puntos((int)ataque_jugador2->poder, jugada.jugador2);
+	juego->usuario.puntos +=
+		determinar_puntos((int)ataque_jugador1->poder, jugada.jugador1);
+	juego->ia.puntos +=
+		determinar_puntos((int)ataque_jugador2->poder, jugada.jugador2);
 	juego->ronda++;
 	return jugada;
 }
