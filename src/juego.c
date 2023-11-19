@@ -179,7 +179,7 @@ bool registrar_ataques(juego_t *juego, const struct ataque *jugador1,
  */
 RESULTADO_ATAQUE efectividad(enum TIPO actual, enum TIPO adversario)
 {
-	if (actual == NORMAL)
+	if (actual == NORMAL || adversario == NORMAL)
 		return ATAQUE_REGULAR;
 
 	enum TIPO tipos[] = { FUEGO, PLANTA, ROCA, ELECTRICO, AGUA };
@@ -193,7 +193,7 @@ RESULTADO_ATAQUE efectividad(enum TIPO actual, enum TIPO adversario)
 			pos_adversario = i;
 	}
 
-	if ((actual == FUEGO && adversario == AGUA))
+	if (actual == FUEGO && adversario == AGUA)
 		pos_adversario = -1;
 
 	if (actual == AGUA && adversario == FUEGO)
@@ -313,25 +313,19 @@ resultado_jugada_t juego_jugar_turno(juego_t *juego, jugada_t jugada_jugador1,
 
 	pokemon_t *pokemon_jugador1;
 	const struct ataque *ataque_jugador1;
-	if (!validar_jugada(juego->jugador1.pokemones,
-			    juego->jugador1.ataques_usados, jugada_jugador1,
-			    &pokemon_jugador1, &ataque_jugador1))
+	if (!validar_jugada(juego->jugador1.pokemones, juego->jugador1.ataques_usados, jugada_jugador1, &pokemon_jugador1, &ataque_jugador1))
 		return jugada;
 
 	pokemon_t *pokemon_jugador2;
 	const struct ataque *ataque_jugador2;
-	if (!validar_jugada(juego->jugador2.pokemones,
-			    juego->jugador2.ataques_usados, jugada_jugador2,
-			    &pokemon_jugador2, &ataque_jugador2))
+	if (!validar_jugada(juego->jugador2.pokemones, juego->jugador2.ataques_usados, jugada_jugador2, &pokemon_jugador2, &ataque_jugador2))
 		return jugada;
 
 	if (!registrar_ataques(juego, ataque_jugador1, ataque_jugador2))
 		return jugada;
 
-	jugada.jugador1 =
-		efectividad(ataque_jugador1->tipo, ataque_jugador2->tipo);
-	jugada.jugador2 =
-		efectividad(ataque_jugador2->tipo, ataque_jugador1->tipo);
+	jugada.jugador1 = efectividad(ataque_jugador1->tipo, ataque_jugador2->tipo);
+	jugada.jugador2 = efectividad(ataque_jugador2->tipo, ataque_jugador1->tipo);
 
 	juego->jugador1.puntos +=
 		determinar_puntos((int)ataque_jugador1->poder, jugada.jugador1);

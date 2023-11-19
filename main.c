@@ -12,12 +12,13 @@
 #define BLANCO "\x1b[37;1m"
 #define VERDE "\x1b[32;1m"
 #define ROJO "\x1b[31;1m"
+#define AZUL "\x1b[34;1m"
 #define AMARILLO "\x1b[33;1m"
 #define NORMAL "\x1b[0m"
 #define MAGNETA "\x1b[35;1m"
 #define CYAN "\x1b[36;1m"
 
-enum RESULTADO { ERROR, OK, SALIR };
+enum RESULTADO { ERROR, OK, SALIR, COMANDO_INVALIDO };
 
 #define CMD_AYUDA "ayuda"
 #define CMD_SALIR "salir"
@@ -59,11 +60,11 @@ void mostrar_ataques_disponibles(const struct ataque *ataque, void *aux)
 	printf(NORMAL "%s\n", ataque->nombre);
 }
 
-bool mostrar_pokemones_disponibles(void *_pokemon, void *aux)
+bool mostrar_pokemones_disponibles(void *pokemon, void *aux)
 {
 	printf(AMARILLO "Nombre: ");
-	printf(NORMAL "%s\n", pokemon_nombre(_pokemon));
-	con_cada_ataque(_pokemon, mostrar_ataques_disponibles, aux);
+	printf(NORMAL "%s\n", pokemon_nombre(pokemon));
+	con_cada_ataque(pokemon, mostrar_ataques_disponibles, aux);
 	return true;
 }
 
@@ -77,8 +78,8 @@ enum RESULTADO seleccionar_pokemones_usuario(juego_t *juego, char *nombre1, char
 	char *nombres[] = { nombre1, nombre2, nombre3 };
 
 	for (int i = 0; i < MAX_ELECCIONES; i++) {
-		printf(MAGNETA "TP2> " NORMAL);
-		printf("Nombre: ");
+		printf(MAGNETA "==TP2== ");
+		printf(AMARILLO "Nombre: " NORMAL);
 		fscanf(stdin, "%s", nombres[i]);
 	}
 
@@ -139,6 +140,18 @@ enum RESULTADO seleccionar_pokemones(juego_t *juego, adversario_t *ia)
 jugada_t realizar_jugada_usuario(juego_t *juego)
 {
 	jugada_t jugada = { .ataque = "", .pokemon = "" };
+	char pokemon[MAX_CARACTERES];
+	char ataque[MAX_CARACTERES];
+
+	printf("Selecciona un pokemon y el ataque que quieras usar de este\n");
+
+	printf(AMARILLO "Pokemon: " NORMAL);
+	fscanf(stdin, "%s", pokemon);
+	printf(AMARILLO "Ataque: " NORMAL);
+	fscanf(stdin, "%s", ataque);
+
+	strcpy(jugada.pokemon, pokemon);
+	strcpy(jugada.ataque, ataque);
 
 	return jugada;
 }
@@ -159,22 +172,18 @@ void mostrar_resultado_ataque(RESULTADO_ATAQUE resultado, jugada_t usuario, juga
 
 enum RESULTADO jugar_ronda(juego_t *juego, adversario_t *ia)
 {
-	jugada_t jugada_usuario;
-	jugada_t jugada_ia;
+	// En esta implementacion el jugador2 siempre da jugadas validas.
+	jugada_t jugada_ia = jugada_ia = adversario_proxima_jugada(ia);
+	jugada_t jugada_usuario = { .ataque = "", .pokemon = "" };
 
 	resultado_jugada_t resultado = { .jugador1 = ATAQUE_ERROR, .jugador2 = ATAQUE_ERROR };
 
-	while (resultado.jugador1 == ATAQUE_ERROR || resultado.jugador2 == ATAQUE_ERROR) {
-		if (resultado.jugador1 == ATAQUE_ERROR)
-			jugada_usuario = realizar_jugada_usuario(juego);
-		if (resultado.jugador2 == ATAQUE_ERROR)
-			jugada_ia = adversario_proxima_jugada(ia);
-		
+	while (resultado.jugador1 == ATAQUE_ERROR) {
+		jugada_usuario = realizar_jugada_usuario(juego);
 		resultado = juego_jugar_turno(juego, jugada_usuario, jugada_ia);
-	}
+	}	
 
 	mostrar_resultado_ataque(resultado.jugador1, jugada_usuario, jugada_ia);
-
 	informar_aviso("Ataque exitoso :)", false);
 	return OK;
 }
@@ -188,7 +197,7 @@ enum RESULTADO mostrar_puntaje(juego_t *juego)
 	return OK;
 }
 
-enum RESULTADO ejecutar_comando(char *comando, juego_t *juego, adversario_t *ia)
+enum RESULTADO ejecutar_comando(char *comando, juego_t *juego, adversario_t *ia, bool *ya_selecciono)
 {
 	if (strcmp(comando, CMD_AYUDA) == 0)
 		return mostrar_comandos_disponibles();
@@ -201,17 +210,19 @@ enum RESULTADO ejecutar_comando(char *comando, juego_t *juego, adversario_t *ia)
 		return OK;
 	}
 		
-	if (strcmp(comando, CMD_SELECCIONAR_POKEMONES) == 0) 
+	if (strcmp(comando, CMD_SELECCIONAR_POKEMONES) == 0) {
+		*ya_selecciono = true;
 		return seleccionar_pokemones(juego, ia);
-		
-//	if (strcmp(comando, CMD_HACER_JUGADA) == 0)
-//		return jugar_ronda(juego, ia);
+	}
+	
+	if (strcmp(comando, CMD_HACER_JUGADA) == 0)
+		return jugar_ronda(juego, ia);
 
 	if (strcmp(comando, CMD_MOSTRAR_PUNTAJE) == 0)
 		return mostrar_puntaje(juego);
 	
 	informar_aviso(("El comando no existe, intenta con 'ayuda'"), true);
-	return ERROR;
+	return COMANDO_INVALIDO;
 }
 
 void liberar_todo(juego_t *juego, adversario_t *ia)
@@ -247,15 +258,29 @@ int main(int argc, char *argv[])
  
 	printf("Ingrese 'ayuda' para ver los comandos disponibles\n");
 	enum RESULTADO resultado = OK;
+	bool ya_selecciono = false;
 
-	while (!juego_finalizado(juego) && resultado != SALIR) {
+	while (!juego_finalizado(juego) && (resultado != ERROR && resultado != SALIR)) {
 		printf(MAGNETA "==TP2== " NORMAL);
 		char comando[MAX_CARACTERES];
 		fscanf(stdin, "%s", comando);
 
-		resultado = ejecutar_comando(comando, juego, ia);
+		if (strcmp(comando, CMD_HACER_JUGADA) == 0 && !ya_selecciono) 
+			informar_aviso("Primero debes seleccionar tus pokemones, intenta con 's'", true);
+
+		else if (strcmp(comando, CMD_SELECCIONAR_POKEMONES) == 0 && ya_selecciono)
+			informar_aviso("No podes volver a seleccionar pokemones hasta terminar la partida", true);
+
+		else 
+			resultado = ejecutar_comando(comando, juego, ia, &ya_selecciono);
 	}
 
+	if (resultado == OK) {
+		printf("Gracias por jugar\n");
+		mostrar_puntaje(juego);
+		printf("Parece que %s\n", juego_obtener_puntaje(juego, JUGADOR1) > juego_obtener_puntaje(juego, JUGADOR2) ? "Ganaste, felicitaciones" : "Perdiste, mala suerte");
+	}
+	
         liberar_todo(juego, ia);
-        return 0;
+        return estado != ERROR_GENERAL ? 0 : -1;
 }

@@ -12,6 +12,8 @@
 
 #define MAX_POKEMONES 3
 #define MAX_ATAQUES 9
+#define ROJO "\x1b[31;1m"
+#define NORMAL "\x1b[0m"
 
 struct adversario {
 	lista_t *pokemones_disponibles;
@@ -162,26 +164,25 @@ jugada_t adversario_proxima_jugada(adversario_t *adversario)
 	if (!adversario)
 		return jugada;
 
-	size_t posicion_pokemon =
-		numero_aleatorio(lista_tamanio(adversario->pokemones));
-	pokemon_t *pokemon = lista_elemento_en_posicion(adversario->pokemones,
-							posicion_pokemon);
+	size_t posicion_pokemon = numero_aleatorio(lista_tamanio(adversario->pokemones));
+	pokemon_t *pokemon = lista_elemento_en_posicion(adversario->pokemones, posicion_pokemon);
 
 	struct paquete paquete = { .tamanio = 0 };
-	size_t posicion_ataque = numero_aleatorio(MAX_ATAQUES);
+	size_t posicion_ataque = numero_aleatorio(MAX_ATAQUES >> 1);
 	con_cada_ataque(pokemon, guardar_ataques, &paquete);
 
-	while (hash_contiene(adversario->ataques_usados,
-			     paquete.ataques[posicion_ataque]->nombre))
-		posicion_ataque = numero_aleatorio(MAX_ATAQUES);
+	while (hash_obtener(adversario->ataques_usados, paquete.ataques[posicion_ataque]->nombre) == paquete.ataques[posicion_ataque])
+		posicion_ataque = numero_aleatorio(MAX_ATAQUES / 3);
 
 	const struct ataque *seleccionado = paquete.ataques[posicion_ataque];
-	if (!hash_insertar(adversario->ataques_usados, seleccionado->nombre,
-			   (void *)seleccionado, NULL))
+	if (!hash_insertar(adversario->ataques_usados, seleccionado->nombre, (void *)seleccionado, NULL))
 		return jugada;
 
 	strcpy(jugada.ataque, seleccionado->nombre);
 	strcpy(jugada.pokemon, pokemon_nombre(pokemon));
+
+	printf(ROJO "Pokemon: %s\n" NORMAL, jugada.pokemon);
+	printf(ROJO "Ataque: %s\n" NORMAL, jugada.ataque);
 
 	if (pokemon_sin_ataques(adversario->ataques_usados, paquete)) {
 		if (!lista_quitar_de_posicion(adversario->pokemones,
