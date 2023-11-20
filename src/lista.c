@@ -22,7 +22,7 @@ struct lista_iterador {
  * Crea un nodo con todos sus campos inicializados en 0. Y luego 
  * le asigna el valor de elemento. 
  */
-struct nodo *_crear_nodo(void *elemento)
+struct nodo *crear_nodo_lista(void *elemento)
 {
 	struct nodo *nuevo = calloc(1, sizeof(nodo_t));
 	if (nuevo == NULL)
@@ -73,7 +73,7 @@ lista_t *lista_insertar(lista_t *lista, void *elemento)
 	if (lista == NULL)
 		return NULL;
 
-	struct nodo *nuevo = _crear_nodo(elemento);
+	struct nodo *nuevo = crear_nodo_lista(elemento);
 	if (nuevo == NULL)
 		return NULL;
 
@@ -95,7 +95,7 @@ lista_t *lista_insertar_en_posicion(lista_t *lista, void *elemento,
 	if (posicion >= lista->cantidad)
 		return lista_insertar(lista, elemento);
 
-	struct nodo *nuevo = _crear_nodo(elemento);
+	struct nodo *nuevo = crear_nodo_lista(elemento);
 	if (nuevo == NULL)
 		return NULL;
 

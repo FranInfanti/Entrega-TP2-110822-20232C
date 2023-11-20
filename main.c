@@ -107,6 +107,10 @@ enum RESULTADO seleccionar_pokemones_ia(juego_t *juego, adversario_t *ia)
 	if (!adversario_seleccionar_pokemon(ia, &nombre1, &nombre2, &nombre3))
 		return ERROR;
 
+	printf(AZUL "%s\n", nombre1);
+	printf(AZUL "%s\n", nombre2);
+	printf(AZUL "%s\n", nombre3);
+
 	if (juego_seleccionar_pokemon(juego, JUGADOR2, nombre1, nombre2, nombre3) == ERROR_GENERAL)
 		return ERROR;
 
@@ -126,7 +130,8 @@ enum RESULTADO seleccionar_pokemones(juego_t *juego, adversario_t *ia)
 	if (seleccionar_pokemones_usuario(juego, nombre1, nombre2, nombre3) == ERROR)
 		return ERROR;
 
-	// se le carga el tercer pokemon al adversario.
+	// se le carga el tercer pokemon al adversario y le aviso que no puede elegir 
+	// un pokemon con nombre1 o nombre2
 	if (!adversario_pokemon_seleccionado(ia, nombre1, nombre2, nombre3))
 		return ERROR;
 
@@ -167,7 +172,8 @@ char *resultado_ataque(RESULTADO_ATAQUE resultado)
 
 void mostrar_resultado_ataque(RESULTADO_ATAQUE resultado, jugada_t usuario, jugada_t ia)
 {
-	printf("El ataque %s fue %s contra el ataque %s\n", usuario.ataque, resultado_ataque(resultado), ia.ataque);
+	printf("El ataque %s fue %s contra el pokemon de tu adversario\n", ia.ataque, resultado_ataque(resultado));
+	printf("El ataque %s fue %s contra tu pokemon\n", usuario.ataque, resultado_ataque(resultado));
 }
 
 enum RESULTADO jugar_ronda(juego_t *juego, adversario_t *ia)
