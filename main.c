@@ -3,11 +3,13 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <time.h>
+
 #include "src/pokemon.h"
 #include "src/ataque.h"
 #include "src/juego.h"
 #include "src/lista.h"
 #include "src/adversario.h"
+#include "src/hash.h"
 
 #define BLANCO "\x1b[37;1m"
 #define VERDE "\x1b[32;1m"
@@ -46,6 +48,7 @@ enum RESULTADO mostrar_comandos_disponibles()
 	printf("Tenes disponibles los siguientes comandos: \n");
 	mostrar_comando(CMD_AYUDA, "Muestra por pantalla los comandos disponibles");
 	mostrar_comando(CMD_SALIR, "Sale del programa");
+	mostrar_comando(CMD_CLEAR, "Limpia la pantalla");
 	mostrar_comando(CMD_SELECCIONAR_POKEMONES, "Selecciona los pokemones para comenzar a jugar");
 	mostrar_comando(CMD_HACER_JUGADA, "Selecciona el pokemon y ataque para poder realizar una jugada");
 	mostrar_comando(CMD_MOSTRAR_PUNTAJE, "Muestra el puntaje de los jugadores");
@@ -126,16 +129,12 @@ enum RESULTADO seleccionar_pokemones(juego_t *juego, adversario_t *ia)
 	char nombre2[MAX_CARACTERES];
 	char nombre3[MAX_CARACTERES];
 
-	// el usuario elije pokemones validos y ya se cargan en juego.
 	if (seleccionar_pokemones_usuario(juego, nombre1, nombre2, nombre3) == ERROR)
 		return ERROR;
 
-	// se le carga el tercer pokemon al adversario y le aviso que no puede elegir 
-	// un pokemon con nombre1 o nombre2
 	if (!adversario_pokemon_seleccionado(ia, nombre1, nombre2, nombre3))
 		return ERROR;
 
-	// el adversario elije pokemones y se guardan en el juego.
 	if (seleccionar_pokemones_ia(juego, ia) == ERROR)
 		return ERROR;
 
@@ -170,27 +169,26 @@ char *resultado_ataque(RESULTADO_ATAQUE resultado)
 	return ROJO "inefectivo" NORMAL;
 }
 
-void mostrar_resultado_ataque(RESULTADO_ATAQUE resultado, jugada_t usuario, jugada_t ia)
+void mostrar_resultado_ataque(resultado_jugada_t resultado, jugada_t usuario, jugada_t ia)
 {
-	printf("El ataque %s fue %s contra el pokemon de tu adversario\n", ia.ataque, resultado_ataque(resultado));
-	printf("El ataque %s fue %s contra tu pokemon\n", usuario.ataque, resultado_ataque(resultado));
+	printf("El ataque %s fue %s contra el pokemon de tu adversario\n", usuario.ataque, resultado_ataque(resultado.jugador1));
+	printf("El ataque %s fue %s contra tu pokemon\n", ia.ataque, resultado_ataque(resultado.jugador2));
 }
 
 enum RESULTADO jugar_ronda(juego_t *juego, adversario_t *ia)
 {
-	// En esta implementacion el jugador2 siempre da jugadas validas.
 	jugada_t jugada_ia = jugada_ia = adversario_proxima_jugada(ia);
 	jugada_t jugada_usuario = { .ataque = "", .pokemon = "" };
-
 	resultado_jugada_t resultado = { .jugador1 = ATAQUE_ERROR, .jugador2 = ATAQUE_ERROR };
 
 	while (resultado.jugador1 == ATAQUE_ERROR) {
 		jugada_usuario = realizar_jugada_usuario(juego);
 		resultado = juego_jugar_turno(juego, jugada_usuario, jugada_ia);
+		if (resultado.jugador1 == ATAQUE_ERROR)
+			informar_aviso("Fijate de estar ingresando el pokemon correcto y acordate de que no podes repetir ataques", true);
 	}	
 
-	mostrar_resultado_ataque(resultado.jugador1, jugada_usuario, jugada_ia);
-	informar_aviso("Ataque exitoso :)", false);
+	mostrar_resultado_ataque(resultado, jugada_usuario, jugada_ia);
 	return OK;
 }
 
@@ -203,7 +201,7 @@ enum RESULTADO mostrar_puntaje(juego_t *juego)
 	return OK;
 }
 
-enum RESULTADO ejecutar_comando(char *comando, juego_t *juego, adversario_t *ia, bool *ya_selecciono)
+enum RESULTADO ejecutar_comando(char *comando, juego_t *juego, adversario_t *ia, bool *selecciono)
 {
 	if (strcmp(comando, CMD_AYUDA) == 0)
 		return mostrar_comandos_disponibles();
@@ -217,13 +215,22 @@ enum RESULTADO ejecutar_comando(char *comando, juego_t *juego, adversario_t *ia,
 	}
 		
 	if (strcmp(comando, CMD_SELECCIONAR_POKEMONES) == 0) {
-		*ya_selecciono = true;
-		return seleccionar_pokemones(juego, ia);
+		if (*selecciono) {
+			informar_aviso("No podes volver a elegir pokemones", true);
+			return COMANDO_INVALIDO;
+		} 
+		*selecciono = true;
+		return seleccionar_pokemones(juego, ia);			
 	}
 	
-	if (strcmp(comando, CMD_HACER_JUGADA) == 0)
+	if (strcmp(comando, CMD_HACER_JUGADA) == 0) {
+		if (!*selecciono) {
+			informar_aviso("Tenes que seleccionar pokemones primero", true);
+			return COMANDO_INVALIDO;
+		}
 		return jugar_ronda(juego, ia);
-
+	}
+		
 	if (strcmp(comando, CMD_MOSTRAR_PUNTAJE) == 0)
 		return mostrar_puntaje(juego);
 	
@@ -237,56 +244,53 @@ void liberar_todo(juego_t *juego, adversario_t *ia)
         juego_destruir(juego);        
 }
 
-int main(int argc, char *argv[])
+bool inicializar_juego(char **argv, juego_t **juego, adversario_t **ia)
 {
-	//if (argc != 2) {
-	//	informar_aviso("Ingrese el nombre del archivo de pokemones :)", true);
-        //	return -1;
-      	//}
+        *juego = juego_crear();
 
-        juego_t *juego = juego_crear();
-	if (!juego) 
-		return -1;
-
-	//JUEGO_ESTADO estado = juego_cargar_pokemon(juego, *(argv + 1));
-	JUEGO_ESTADO estado = juego_cargar_pokemon(juego, "ejemplos/correcto.txt");
+	JUEGO_ESTADO estado = juego_cargar_pokemon(juego, *(argv + 1));
         if (estado != TODO_OK) {
-		informar_aviso(estado == ERROR_GENERAL ? "error el archivo no existe" : "La cantidad de pokemones es invalida, intenta con otro archivo", true);
-                liberar_todo(juego, NULL);
-                return -1;
+		informar_aviso(estado == ERROR_GENERAL ? "El archivo no existe" : "La cantidad de pokemones es invalida, intenta con otro archivo", true);
+                return false;
         }
 
-	adversario_t *ia = adversario_crear(juego_listar_pokemon(juego));
-	if (!ia) {
-		liberar_todo(juego, NULL);
+	*ia = adversario_crear(juego_listar_pokemon(juego));
+
+	return *juego && *ia ;
+}
+
+int main(int argc, char *argv[])
+{
+	if (argc != 2) {
+		informar_aviso("Ingrese el nombre del archivo de pokemones :)", true);
+        	return -1;
+      	}
+
+        juego_t *juego;
+	adversario_t *ia;
+	
+	if (inicializar_juego(argv, &juego, &ia)) {
+		liberar_todo(juego, ia);
 		return -1;
 	}
- 
+
 	printf("Ingrese 'ayuda' para ver los comandos disponibles\n");
 	enum RESULTADO resultado = OK;
-	bool ya_selecciono = false;
+	bool selecciono = false;
 
-	while (!juego_finalizado(juego) && (resultado != ERROR && resultado != SALIR)) {
+	while (!juego_finalizado(juego) && (resultado == TODO_OK || resultado == COMANDO_INVALIDO)) {
 		printf(MAGNETA "==TP2== " NORMAL);
 		char comando[MAX_CARACTERES];
 		fscanf(stdin, "%s", comando);
-
-		if (strcmp(comando, CMD_HACER_JUGADA) == 0 && !ya_selecciono) 
-			informar_aviso("Primero debes seleccionar tus pokemones, intenta con 's'", true);
-
-		else if (strcmp(comando, CMD_SELECCIONAR_POKEMONES) == 0 && ya_selecciono)
-			informar_aviso("No podes volver a seleccionar pokemones hasta terminar la partida", true);
-
-		else 
-			resultado = ejecutar_comando(comando, juego, ia, &ya_selecciono);
+		resultado = ejecutar_comando(comando, juego, ia, &selecciono);
 	}
 
 	if (resultado == OK) {
-		printf("Gracias por jugar\n");
 		mostrar_puntaje(juego);
 		printf("Parece que %s\n", juego_obtener_puntaje(juego, JUGADOR1) > juego_obtener_puntaje(juego, JUGADOR2) ? "Ganaste, felicitaciones" : "Perdiste, mala suerte");
+		printf(VERDE "Gracias por jugar\n" NORMAL);
 	}
 	
         liberar_todo(juego, ia);
-        return estado != ERROR_GENERAL ? 0 : -1;
+        return resultado == OK ? 0 : -1;
 }

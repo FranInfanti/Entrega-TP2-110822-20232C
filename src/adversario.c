@@ -13,7 +13,7 @@
 #include "abb.h"
 
 #define MAX_POKEMONES 3
-#define MAX_ATAQUES 9
+#define MAX_ATAQUES 3
 #define ROJO "\x1b[31;1m"
 #define NORMAL "\x1b[0m"
 
@@ -25,7 +25,7 @@ struct adversario {
 };
 
 struct paquete {
-	struct ataque *ataques[MAX_ATAQUES / 3];
+	struct ataque *ataques[MAX_ATAQUES];
 	int tamanio;
 };
 
@@ -207,26 +207,30 @@ jugada_t adversario_proxima_jugada(adversario_t *adversario)
 	con_cada_ataque(pokemon, adversario_cargar_ataques, &paquete);
 
 	size_t posicion_ataque; 
-	cargar_posiciones(&posicion_ataque, 1, MAX_ATAQUES / 3);
+	cargar_posiciones(&posicion_ataque, 1, MAX_ATAQUES);
 
-	while (!abb_buscar(adversario->ataques, paquete.ataques[posicion_ataque]))
-		cargar_posiciones(&posicion_ataque, 1, MAX_ATAQUES / 3);
+	int i = 0;
+	while (!abb_buscar(adversario->ataques, paquete.ataques[posicion_ataque]) && i < MAX_ATAQUES) {
+		cargar_posiciones(&posicion_ataque, 1, MAX_ATAQUES);
+		i++;
+	}
+		
+	if (i == MAX_ATAQUES)
+		return adversario_proxima_jugada(adversario);
 
  	struct ataque *seleccionado = paquete.ataques[posicion_ataque];
-	if (!abb_quitar(adversario->ataques, seleccionado))
-		return jugada;
-
-	printf(ROJO "Le quedan: %li ataques\n" NORMAL, abb_tamanio(adversario->ataques));
+	abb_quitar(adversario->ataques, seleccionado);
 
 	strcpy(jugada.ataque, seleccionado->nombre);
 	strcpy(jugada.pokemon, pokemon_nombre(pokemon));
 
-	printf(ROJO "Pokemon: %s\n" NORMAL, jugada.pokemon);
-	printf(ROJO "Ataque: %s\n" NORMAL, jugada.ataque);
-
 	if (pokemon_sin_ataques(adversario->ataques, paquete)) 
 		lista_quitar_de_posicion(adversario->pokemones, posicion_pokemon);	
 
+	printf(ROJO "Pokemon: %s\n" NORMAL, jugada.pokemon);
+	printf(ROJO "Ataque: %s\n" NORMAL, jugada.ataque);
+
+	printf(ROJO "Le quedan: %li ataques\n" NORMAL, abb_tamanio(adversario->ataques));
 	printf(ROJO "Le quedan %li pokemones con ataques\n" NORMAL, lista_tamanio(adversario->pokemones));
 
 	return jugada;

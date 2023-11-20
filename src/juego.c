@@ -121,8 +121,9 @@ bool existe_pokemon(lista_t *listado, const char **nombres,
 }
 
 /*
+ * Recibe un ataque y un puntero a un abb.
  *
- *
+ * Inserta en el abb el ataque pasado por parametro.
  */
 void guardar_ataques(const struct ataque *ataque, void *abb)
 {
@@ -138,8 +139,6 @@ void guardar_ataques(const struct ataque *ataque, void *abb)
 bool guardar_pokemones(juego_t *juego, JUGADOR jugador, pokemon_t **pokemones,
 		       int tamanio)
 {
-
-	// Por ahora no hay casos de error.
 	for (int i = 0; i < tamanio - 1; i++) {
 		hash_insertar(jugador ? juego->jugador2.pokemones : juego->jugador1.pokemones, pokemon_nombre(pokemones[i]), pokemones[i], NULL);
 		con_cada_ataque(pokemones[i], guardar_ataques, jugador ? juego->jugador2.ataques_disponibles : juego->jugador1.ataques_disponibles);
@@ -234,11 +233,6 @@ int determinar_puntos(int poder, RESULTADO_ATAQUE ataque)
 	return poder % 2 == 0 ? poder >> 1 : (poder >> 1) + 1;
 }
 
-
-
-
-
-
 juego_t *juego_crear()
 {
 	juego_t *juego = calloc(1, sizeof(struct juego));
@@ -326,10 +320,8 @@ resultado_jugada_t juego_jugar_turno(juego_t *juego, jugada_t jugada_jugador1,
 	jugada.jugador1 = efectividad(ataque_jugador1->tipo, pokemon_tipo(pokemon_jugador2));
 	jugada.jugador2 = efectividad(ataque_jugador2->tipo, pokemon_tipo(pokemon_jugador1));
 
-	juego->jugador1.puntos +=
-		determinar_puntos((int)ataque_jugador1->poder, jugada.jugador1);
-	juego->jugador2.puntos +=
-		determinar_puntos((int)ataque_jugador2->poder, jugada.jugador2);
+	juego->jugador1.puntos += determinar_puntos((int)ataque_jugador1->poder, jugada.jugador1);
+	juego->jugador2.puntos += determinar_puntos((int)ataque_jugador2->poder, jugada.jugador2);
 
 	juego->ronda++;
 	return jugada;
