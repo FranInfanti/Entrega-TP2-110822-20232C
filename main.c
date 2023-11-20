@@ -244,41 +244,44 @@ void liberar_todo(juego_t *juego, adversario_t *ia)
         juego_destruir(juego);        
 }
 
-bool inicializar_juego(char **argv, juego_t **juego, adversario_t **ia)
+bool inicializar_juego(char *argv[], juego_t **juego, adversario_t **ia)
 {
         *juego = juego_crear();
 
-	JUEGO_ESTADO estado = juego_cargar_pokemon(juego, *(argv + 1));
+	JUEGO_ESTADO estado = juego_cargar_pokemon(*juego, *(argv + 1));
         if (estado != TODO_OK) {
 		informar_aviso(estado == ERROR_GENERAL ? "El archivo no existe" : "La cantidad de pokemones es invalida, intenta con otro archivo", true);
                 return false;
         }
 
-	*ia = adversario_crear(juego_listar_pokemon(juego));
+	*ia = adversario_crear(juego_listar_pokemon(*juego));
 
 	return *juego && *ia ;
 }
 
 int main(int argc, char *argv[])
 {
-	if (argc != 2) {
-		informar_aviso("Ingrese el nombre del archivo de pokemones :)", true);
-        	return -1;
-      	}
-
-        juego_t *juego;
-	adversario_t *ia;
+        juego_t *juego = juego_crear();
+	if (!juego)
+		return -1;
 	
-	if (inicializar_juego(argv, &juego, &ia)) {
-		liberar_todo(juego, ia);
+	JUEGO_ESTADO estado = juego_cargar_pokemon(juego, "ejemplos/correcto.txt");
+        if (estado != TODO_OK) {
+		informar_aviso(estado == ERROR_GENERAL ? "El archivo no existe" : "La cantidad de pokemones es invalida, intenta con otro archivo", true);
+                return false;
+        }
+
+	adversario_t *ia = adversario_crear(juego_listar_pokemon(juego));
+	if (!ia) {
+		liberar_todo(juego, NULL);
 		return -1;
 	}
-
+	
 	printf("Ingrese 'ayuda' para ver los comandos disponibles\n");
 	enum RESULTADO resultado = OK;
 	bool selecciono = false;
 
-	while (!juego_finalizado(juego) && (resultado == TODO_OK || resultado == COMANDO_INVALIDO)) {
+	while (!juego_finalizado(juego) && (resultado == OK || resultado == COMANDO_INVALIDO)) {
 		printf(MAGNETA "==TP2== " NORMAL);
 		char comando[MAX_CARACTERES];
 		fscanf(stdin, "%s", comando);
