@@ -16,9 +16,11 @@
 #define ROJO "\x1b[31;1m"
 #define AZUL "\x1b[34;1m"
 #define AMARILLO "\x1b[33;1m"
-#define NORMAL "\x1b[0m"
+#define COMUN "\x1b[0m"
 #define MAGNETA "\x1b[35;1m"
 #define CYAN "\x1b[36;1m"
+#define NARANJA "\x1B[38;2;255;128;0m"
+#define GRIS "\x1B[38;2;176;174;174m"
 
 enum RESULTADO { ERROR, OK, SALIR, COMANDO_INVALIDO };
 
@@ -33,14 +35,14 @@ enum RESULTADO { ERROR, OK, SALIR, COMANDO_INVALIDO };
 
 void informar_aviso(char *aviso, bool error)
 {
-	error ? printf(ROJO "ERROR: " NORMAL) : printf(VERDE "EXITO: " NORMAL);
+	error ? printf(ROJO "ERROR: " COMUN) : printf(VERDE "EXITO: " COMUN);
 	printf("%s\n", aviso);		
 }
 
 void mostrar_comando(char *comando, char *descripcion)
 {
 	printf(AMARILLO "%s: ", comando);
-	printf(NORMAL "%s\n", descripcion);
+	printf(COMUN "%s\n", descripcion);
 }
 
 enum RESULTADO mostrar_comandos_disponibles()
@@ -55,18 +57,34 @@ enum RESULTADO mostrar_comandos_disponibles()
 	return OK;
 }
 
+void determinar_color(enum TIPO tipo, const char *str)
+{	
+	if (tipo == NORMAL)
+		printf(NARANJA "%s\n" COMUN, str);
+	else if (tipo == FUEGO)
+		printf(ROJO "%s\n" COMUN, str);
+	else if (tipo == AGUA)
+		printf(AZUL "%s\n" COMUN, str);
+	else if (tipo == PLANTA)
+		printf(VERDE "%s\n" COMUN, str);
+	else if (tipo == ELECTRICO)
+		printf(CYAN "%s\n" COMUN, str);
+	else if (tipo == ROCA)
+		printf(GRIS "%s\n" COMUN, str);	
+}
+
 void mostrar_ataques_disponibles(const struct ataque *ataque, void *aux)
 {
-	printf(MAGNETA "Poder: ");
-	printf(NORMAL "%u\t", ataque->poder);
-	printf(ROJO "\t Ataque: ");
-	printf(NORMAL "%s\n", ataque->nombre);
+	printf(BLANCO "Poder: ");
+	printf(COMUN "%u", ataque->poder);
+	printf(BLANCO "\t Ataque: ");
+	determinar_color(ataque->tipo, ataque->nombre);
 }
 
 bool mostrar_pokemones_disponibles(void *pokemon, void *aux)
 {
 	printf(AMARILLO "Nombre: ");
-	printf(NORMAL "%s\n", pokemon_nombre(pokemon));
+	determinar_color(pokemon_tipo(pokemon), pokemon_nombre(pokemon));
 	con_cada_ataque(pokemon, mostrar_ataques_disponibles, aux);
 	return true;
 }
@@ -82,7 +100,7 @@ enum RESULTADO seleccionar_pokemones_usuario(juego_t *juego, char *nombre1, char
 
 	for (int i = 0; i < MAX_ELECCIONES; i++) {
 		printf(MAGNETA "==TP2== ");
-		printf(AMARILLO "Nombre: " NORMAL);
+		printf(AMARILLO "Nombre: " COMUN);
 		fscanf(stdin, "%s", nombres[i]);
 	}
 
@@ -122,7 +140,8 @@ enum RESULTADO seleccionar_pokemones_ia(juego_t *juego, adversario_t *ia)
 
 enum RESULTADO seleccionar_pokemones(juego_t *juego, adversario_t *ia)
 {	
-        printf("Tenes todos estos pokemones, selecciona tres. Los dos primeros son para vos y el tercero para tu adversario.\n");
+        printf("Tenes todos estos pokemones, selecciona tres. Los dos primeros son para vos y el tercero para tu adversario\n");
+	printf("El color del pokemon y ataque corresponde al tipo de este\n");
 	listar_pokemones(juego);
 
 	char nombre1[MAX_CARACTERES];
@@ -149,9 +168,9 @@ jugada_t realizar_jugada_usuario(juego_t *juego)
 
 	printf("Selecciona un pokemon y el ataque que quieras usar de este\n");
 
-	printf(AMARILLO "Pokemon: " NORMAL);
+	printf(AMARILLO "Pokemon: " COMUN);
 	fscanf(stdin, "%s", pokemon);
-	printf(AMARILLO "Ataque: " NORMAL);
+	printf(AMARILLO "Ataque: " COMUN);
 	fscanf(stdin, "%s", ataque);
 
 	strcpy(jugada.pokemon, pokemon);
@@ -163,16 +182,20 @@ jugada_t realizar_jugada_usuario(juego_t *juego)
 char *resultado_ataque(RESULTADO_ATAQUE resultado)
 {
 	if (resultado == ATAQUE_REGULAR)
-		return AMARILLO "regular" NORMAL;
+		return AMARILLO "regular" COMUN;
 	if (resultado == ATAQUE_EFECTIVO)
-		return VERDE "efectivo" NORMAL;
-	return ROJO "inefectivo" NORMAL;
+		return VERDE "efectivo" COMUN;
+	return ROJO "inefectivo" COMUN;
 }
 
 void mostrar_resultado_ataque(resultado_jugada_t resultado, jugada_t usuario, jugada_t ia)
 {
-	printf("El ataque %s fue %s contra el pokemon de tu adversario\n", usuario.ataque, resultado_ataque(resultado.jugador1));
-	printf("El ataque %s fue %s contra tu pokemon\n", ia.ataque, resultado_ataque(resultado.jugador2));
+	printf("El ataque ");
+	printf(BLANCO "%s " COMUN, usuario.ataque);
+	printf("fue %s contra el pokemon de tu adversario\n", resultado_ataque(resultado.jugador1));
+	printf("El ataque ");
+	printf(BLANCO "%s " COMUN, ia.ataque);
+	printf("fue %s contra tu pokemon\n", resultado_ataque(resultado.jugador2));
 }
 
 enum RESULTADO jugar_ronda(juego_t *juego, adversario_t *ia)
@@ -194,9 +217,9 @@ enum RESULTADO jugar_ronda(juego_t *juego, adversario_t *ia)
 
 enum RESULTADO mostrar_puntaje(juego_t *juego)
 {
-	printf(AMARILLO "Usuario: " NORMAL);
+	printf(AMARILLO "Usuario: " COMUN);
 	printf("%i\n", juego_obtener_puntaje(juego, JUGADOR1));
-	printf(AMARILLO "Ia: " NORMAL);
+	printf(AMARILLO "Ia: " COMUN);
 	printf("%i\n", juego_obtener_puntaje(juego, JUGADOR2));
 	return OK;
 }
@@ -261,6 +284,7 @@ bool inicializar_juego(char *argv[], juego_t **juego, adversario_t **ia)
 
 int main(int argc, char *argv[])
 {
+	srand(( unsigned)time(NULL));
         juego_t *juego = juego_crear();
 	if (!juego)
 		return -1;
@@ -282,7 +306,7 @@ int main(int argc, char *argv[])
 	bool selecciono = false;
 
 	while (!juego_finalizado(juego) && (resultado == OK || resultado == COMANDO_INVALIDO)) {
-		printf(MAGNETA "==TP2== " NORMAL);
+		printf(MAGNETA "==TP2== " COMUN);
 		char comando[MAX_CARACTERES];
 		fscanf(stdin, "%s", comando);
 		resultado = ejecutar_comando(comando, juego, ia, &selecciono);
@@ -290,8 +314,8 @@ int main(int argc, char *argv[])
 
 	if (resultado == OK) {
 		mostrar_puntaje(juego);
-		printf("Parece que %s\n", juego_obtener_puntaje(juego, JUGADOR1) > juego_obtener_puntaje(juego, JUGADOR2) ? "Ganaste, felicitaciones" : "Perdiste, mala suerte");
-		printf(VERDE "Gracias por jugar\n" NORMAL);
+		printf("Parece que %s\n", juego_obtener_puntaje(juego, JUGADOR1) > juego_obtener_puntaje(juego, JUGADOR2) ? VERDE "ganaste, felicitaciones :)" COMUN : ROJO "perdiste, mala suerte :(" COMUN);
+		printf(VERDE "Gracias por jugar\n" COMUN);
 	}
 	
         liberar_todo(juego, ia);

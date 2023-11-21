@@ -4,17 +4,16 @@
 #include <string.h>
 
 #include "juego.h"
-#include "lista.h"
 #include "tipo.h"
 #include "pokemon.h"
 #include "ataque.h"
 #include "hash.h"
 #include "abb.h"
+#include "comun.h"
 
 #define CANTIDAD_MINIMA 6
 #define CANTIDAD_RONDAS 9
 #define MAX_POKEMONES 3
-#define MAX_ATAQUES 9
 #define MULTIPLICADOR_EFECTIVO 3
 
 struct jugador {
@@ -24,38 +23,13 @@ struct jugador {
 };
 
 struct juego {
-	int ronda;
+	unsigned ronda;
 	informacion_pokemon_t *informacion;
 	lista_t *pokemones;
 	struct jugador jugador1;
 	struct jugador jugador2;
 };
 
-/*
- * Recibe dos ataques.
- * 
- * Compara sus nombres y devuelve 0 si son iguales, 
- * 0 < si el nombre del ataque1 es mas grande y 0 > 
- * si el nombre del ataque2 es mas grande.
- */
-int comparador_abb(void *_ataque1, void *_ataque2)
-{
-	struct ataque *ataque1 = _ataque1;
-	struct ataque *ataque2 = _ataque2;
-
-	return strcmp(ataque1->nombre, ataque2->nombre);
-}
-
-/*
- * Recibe un pokemon y un nombre.
- *
- * Compara el nombre del pokemon con el recibido por parametro.
- * Devuelve 0 si son iguales.
- */
-int comparar_nombres(void *pokemon, void *nombre)
-{
-	return strcmp(pokemon_nombre((pokemon_t *)pokemon), (char *)nombre);
-}
 
 /*
  * Recibe la direccion de memoria de un jugador.
@@ -118,16 +92,6 @@ bool existe_pokemon(lista_t *listado, const char **nombres,
 	for (int i = 0; i < tamanio && existe; i++)
 		existe = pokemones[i] != NULL;
 	return existe;
-}
-
-/*
- * Recibe un ataque y un puntero a un abb.
- *
- * Inserta en el abb el ataque pasado por parametro.
- */
-void guardar_ataques(const struct ataque *ataque, void *abb)
-{
-	abb_insertar((abb_t *)abb, (void *)ataque);
 }
 
 /*
@@ -194,8 +158,8 @@ RESULTADO_ATAQUE efectividad(enum TIPO ataque, enum TIPO pokemon)
 		return ATAQUE_REGULAR;
 
 	enum TIPO tipos[] = { FUEGO, PLANTA, ROCA, ELECTRICO, AGUA };
-	int pos_actual;
-	int pos_adversario;
+	int pos_actual = 0;
+	int pos_adversario = 0;
 
 	for (int i = 0; i < sizeof(tipos) / sizeof(int); i++) {
 		if (tipos[i] == ataque)
@@ -205,10 +169,10 @@ RESULTADO_ATAQUE efectividad(enum TIPO ataque, enum TIPO pokemon)
 	}
 
 	if (ataque == FUEGO && pokemon == AGUA)
-		pos_adversario = -1;
+		pos_actual = 5;
 
 	if (ataque == AGUA && pokemon == FUEGO)
-		pos_actual = 5;
+		pos_adversario = 5;
 
 	if (pos_actual - pos_adversario == -1)
 		return ATAQUE_EFECTIVO;
@@ -302,13 +266,11 @@ resultado_jugada_t juego_jugar_turno(juego_t *juego, jugada_t jugada_jugador1,
 	if (!juego)
 		return jugada;
 
-	// Verifico si la jugada es valida.
 	pokemon_t *pokemon_jugador1;
 	struct ataque *ataque_jugador1;
 	if (!validar_jugada(juego->jugador1.pokemones, juego->jugador1.ataques_disponibles, jugada_jugador1, &pokemon_jugador1, &ataque_jugador1))
 		return jugada;
 
-	// Verifico si a jugada es valida.
 	pokemon_t *pokemon_jugador2;
 	struct ataque *ataque_jugador2;
 	if (!validar_jugada(juego->jugador2.pokemones, juego->jugador2.ataques_disponibles, jugada_jugador2, &pokemon_jugador2, &ataque_jugador2))
@@ -322,8 +284,8 @@ resultado_jugada_t juego_jugar_turno(juego_t *juego, jugada_t jugada_jugador1,
 
 	juego->jugador1.puntos += determinar_puntos((int)ataque_jugador1->poder, jugada.jugador1);
 	juego->jugador2.puntos += determinar_puntos((int)ataque_jugador2->poder, jugada.jugador2);
-
 	juego->ronda++;
+
 	return jugada;
 }
 
@@ -346,7 +308,6 @@ void juego_destruir(juego_t *juego)
 {
 	if (!juego)
 		return;
-
 
 	abb_destruir(juego->jugador2.ataques_disponibles);
 	hash_destruir(juego->jugador2.pokemones);
