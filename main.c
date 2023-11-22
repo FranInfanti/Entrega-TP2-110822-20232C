@@ -10,6 +10,7 @@
 #include "src/lista.h"
 #include "src/adversario.h"
 #include "src/hash.h"
+#include "src/comun.h"
 
 #define BLANCO "\x1b[37;1m"
 #define VERDE "\x1b[32;1m"
@@ -19,8 +20,8 @@
 #define COMUN "\x1b[0m"
 #define MAGNETA "\x1b[35;1m"
 #define CYAN "\x1b[36;1m"
-#define NARANJA "\x1B[38;2;255;128;0m"
-#define GRIS "\x1B[38;2;176;174;174m"
+#define NARANJA "\x1b[38;2;255;128;0m"
+#define GRIS "\x1b[38;2;176;174;174m"
 
 enum RESULTADO { ERROR, OK, SALIR, COMANDO_INVALIDO };
 
@@ -30,8 +31,15 @@ enum RESULTADO { ERROR, OK, SALIR, COMANDO_INVALIDO };
 #define CMD_SELECCIONAR_POKEMONES "s"
 #define CMD_HACER_JUGADA "j"
 #define CMD_MOSTRAR_PUNTAJE "p"
+#define CMD_MOSTRAR_POKEMONES "m"
 #define MAX_CARACTERES 50
 #define MAX_ELECCIONES 3
+
+struct paquete {
+	juego_t *juego;
+	adversario_t *ia;
+	lista_t *pokemones_usuario;
+};
 
 void informar_aviso(char *aviso, bool error)
 {
@@ -43,18 +51,6 @@ void mostrar_comando(char *comando, char *descripcion)
 {
 	printf(AMARILLO "%s: ", comando);
 	printf(COMUN "%s\n", descripcion);
-}
-
-enum RESULTADO mostrar_comandos_disponibles()
-{
-	printf("Tenes disponibles los siguientes comandos: \n");
-	mostrar_comando(CMD_AYUDA, "Muestra por pantalla los comandos disponibles");
-	mostrar_comando(CMD_SALIR, "Sale del programa");
-	mostrar_comando(CMD_CLEAR, "Limpia la pantalla");
-	mostrar_comando(CMD_SELECCIONAR_POKEMONES, "Selecciona los pokemones para comenzar a jugar");
-	mostrar_comando(CMD_HACER_JUGADA, "Selecciona el pokemon y ataque para poder realizar una jugada");
-	mostrar_comando(CMD_MOSTRAR_PUNTAJE, "Muestra el puntaje de los jugadores");
-	return OK;
 }
 
 void determinar_color(enum TIPO tipo, const char *str)
@@ -89,13 +85,16 @@ bool mostrar_pokemones_disponibles(void *pokemon, void *aux)
 	return true;
 }
 
-void listar_pokemones(void *juego)
+void listar_pokemones(void *lista)
 {
-        lista_con_cada_elemento(juego_listar_pokemon((juego_t *)juego), mostrar_pokemones_disponibles, NULL);
+        lista_con_cada_elemento(lista, mostrar_pokemones_disponibles, NULL);
 }
 
-enum RESULTADO seleccionar_pokemones_usuario(juego_t *juego, char *nombre1, char *nombre2, char *nombre3)
+enum RESULTADO seleccionar_pokemones_usuario(juego_t *juego, adversario_t *ia, lista_t *pokemones_usuario)
 {
+	char nombre1[MAX_CARACTERES];
+	char nombre2[MAX_CARACTERES];
+	char nombre3[MAX_CARACTERES];
 	char *nombres[] = { nombre1, nombre2, nombre3 };
 
 	for (int i = 0; i < MAX_ELECCIONES; i++) {
@@ -108,7 +107,7 @@ enum RESULTADO seleccionar_pokemones_usuario(juego_t *juego, char *nombre1, char
 
         if (estado == POKEMON_INEXISTENTE || estado == POKEMON_REPETIDO) {
 		informar_aviso(estado == POKEMON_INEXISTENTE ? "Ingresa pokemones de la lista" : "No se pueden pokemones repetidos", true);
-                return seleccionar_pokemones_usuario(juego, nombre1, nombre2, nombre3);
+                return seleccionar_pokemones_usuario(juego, ia, pokemones_usuario);
         }
         
 	if (estado == ERROR_GENERAL) {
@@ -116,11 +115,17 @@ enum RESULTADO seleccionar_pokemones_usuario(juego_t *juego, char *nombre1, char
 		return ERROR;
 	}
 
+	if (!adversario_pokemon_seleccionado(ia, nombre1, nombre2, nombre3))
+		return ERROR;
+
+	lista_insertar(pokemones_usuario, lista_buscar_elemento(juego_listar_pokemon(juego), comparar_nombres, nombre1));
+	lista_insertar(pokemones_usuario, lista_buscar_elemento(juego_listar_pokemon(juego), comparar_nombres, nombre2));
+
 	informar_aviso("Pokemones cargados :)", false);
 	return OK;
 }
 
-enum RESULTADO seleccionar_pokemones_ia(juego_t *juego, adversario_t *ia)
+enum RESULTADO seleccionar_pokemones_ia(juego_t *juego, adversario_t *ia, lista_t *pokemones_usuario)
 {
 	char *nombre1;
 	char *nombre2;
@@ -128,33 +133,13 @@ enum RESULTADO seleccionar_pokemones_ia(juego_t *juego, adversario_t *ia)
 	if (!adversario_seleccionar_pokemon(ia, &nombre1, &nombre2, &nombre3))
 		return ERROR;
 
+	lista_insertar(pokemones_usuario, lista_buscar_elemento(juego_listar_pokemon(juego), comparar_nombres, nombre3));
+
 	printf(AZUL "%s\n", nombre1);
 	printf(AZUL "%s\n", nombre2);
 	printf(AZUL "%s\n", nombre3);
 
 	if (juego_seleccionar_pokemon(juego, JUGADOR2, nombre1, nombre2, nombre3) == ERROR_GENERAL)
-		return ERROR;
-
-	return OK;
-}
-
-enum RESULTADO seleccionar_pokemones(juego_t *juego, adversario_t *ia)
-{	
-        printf("Tenes todos estos pokemones, selecciona tres. Los dos primeros son para vos y el tercero para tu adversario\n");
-	printf("El color del pokemon y ataque corresponde al tipo de este\n");
-	listar_pokemones(juego);
-
-	char nombre1[MAX_CARACTERES];
-	char nombre2[MAX_CARACTERES];
-	char nombre3[MAX_CARACTERES];
-
-	if (seleccionar_pokemones_usuario(juego, nombre1, nombre2, nombre3) == ERROR)
-		return ERROR;
-
-	if (!adversario_pokemon_seleccionado(ia, nombre1, nombre2, nombre3))
-		return ERROR;
-
-	if (seleccionar_pokemones_ia(juego, ia) == ERROR)
 		return ERROR;
 
 	return OK;
@@ -198,6 +183,36 @@ void mostrar_resultado_ataque(resultado_jugada_t resultado, jugada_t usuario, ju
 	printf("fue %s contra tu pokemon\n", resultado_ataque(resultado.jugador2));
 }
 
+
+
+enum RESULTADO mostrar_comandos_disponibles()
+{
+	printf("Tenes disponibles los siguientes comandos: \n");
+	mostrar_comando(CMD_AYUDA, "Muestra por pantalla los comandos disponibles");
+	mostrar_comando(CMD_SALIR, "Sale del programa");
+	mostrar_comando(CMD_CLEAR, "Limpia la pantalla");
+	mostrar_comando(CMD_SELECCIONAR_POKEMONES, "Selecciona los pokemones para comenzar a jugar");
+	mostrar_comando(CMD_HACER_JUGADA, "Selecciona el pokemon y ataque para poder realizar una jugada");
+	mostrar_comando(CMD_MOSTRAR_POKEMONES, "Muestra por pantalla los pokemones disponibles");
+	mostrar_comando(CMD_MOSTRAR_PUNTAJE, "Muestra el puntaje de los jugadores");
+	return OK;
+}
+
+enum RESULTADO seleccionar_pokemones(juego_t *juego, adversario_t *ia, lista_t *pokemones_usuario)
+{	
+        printf("Tenes todos estos pokemones, selecciona tres. Los dos primeros son para vos y el tercero para tu adversario\n");
+	printf("El color del pokemon y ataque corresponde al tipo de este\n");
+	listar_pokemones(juego_listar_pokemon(juego));
+
+	if (seleccionar_pokemones_usuario(juego, ia, pokemones_usuario) == ERROR)
+		return ERROR;
+
+	if (seleccionar_pokemones_ia(juego, ia, pokemones_usuario) == ERROR)
+		return ERROR;
+
+	return OK;
+}
+
 enum RESULTADO jugar_ronda(juego_t *juego, adversario_t *ia)
 {
 	jugada_t jugada_ia = jugada_ia = adversario_proxima_jugada(ia);
@@ -224,7 +239,8 @@ enum RESULTADO mostrar_puntaje(juego_t *juego)
 	return OK;
 }
 
-enum RESULTADO ejecutar_comando(char *comando, juego_t *juego, adversario_t *ia, bool *selecciono)
+
+enum RESULTADO ejecutar_comando(char *comando, juego_t *juego, adversario_t *ia, lista_t *pokemones_usuario, bool *selecciono)
 {
 	if (strcmp(comando, CMD_AYUDA) == 0)
 		return mostrar_comandos_disponibles();
@@ -243,7 +259,7 @@ enum RESULTADO ejecutar_comando(char *comando, juego_t *juego, adversario_t *ia,
 			return COMANDO_INVALIDO;
 		} 
 		*selecciono = true;
-		return seleccionar_pokemones(juego, ia);			
+		return seleccionar_pokemones(juego, ia, pokemones_usuario);			
 	}
 	
 	if (strcmp(comando, CMD_HACER_JUGADA) == 0) {
@@ -253,6 +269,13 @@ enum RESULTADO ejecutar_comando(char *comando, juego_t *juego, adversario_t *ia,
 		}
 		return jugar_ronda(juego, ia);
 	}
+
+	if (strcmp(comando, CMD_MOSTRAR_POKEMONES) == 0) {
+		if (!*selecciono)
+			informar_aviso("No tenes pokemones asignados, intenta con 's'", true);
+		listar_pokemones(pokemones_usuario);
+		return OK;
+	}
 		
 	if (strcmp(comando, CMD_MOSTRAR_PUNTAJE) == 0)
 		return mostrar_puntaje(juego);
@@ -261,8 +284,12 @@ enum RESULTADO ejecutar_comando(char *comando, juego_t *juego, adversario_t *ia,
 	return COMANDO_INVALIDO;
 }
 
-void liberar_todo(juego_t *juego, adversario_t *ia)
+
+
+
+void liberar_todo(juego_t *juego, adversario_t *ia, lista_t *pokemones_usuario)
 {
+	lista_destruir(pokemones_usuario);
         adversario_destruir(ia);
         juego_destruir(juego);        
 }
@@ -292,15 +319,22 @@ int main(int argc, char *argv[])
 	JUEGO_ESTADO estado = juego_cargar_pokemon(juego, "ejemplos/correcto.txt");
         if (estado != TODO_OK) {
 		informar_aviso(estado == ERROR_GENERAL ? "El archivo no existe" : "La cantidad de pokemones es invalida, intenta con otro archivo", true);
-                return false;
+                liberar_todo(juego, NULL, NULL);
+		return -1;
         }
 
 	adversario_t *ia = adversario_crear(juego_listar_pokemon(juego));
 	if (!ia) {
-		liberar_todo(juego, NULL);
+		liberar_todo(juego, NULL, NULL);
 		return -1;
 	}
-	
+
+	lista_t *pokemones_usuario = lista_crear();
+	if (!pokemones_usuario) {
+		liberar_todo(juego, ia, NULL);
+		return -1;	
+	}
+
 	printf("Ingrese 'ayuda' para ver los comandos disponibles\n");
 	enum RESULTADO resultado = OK;
 	bool selecciono = false;
@@ -309,7 +343,7 @@ int main(int argc, char *argv[])
 		printf(MAGNETA "==TP2== " COMUN);
 		char comando[MAX_CARACTERES];
 		fscanf(stdin, "%s", comando);
-		resultado = ejecutar_comando(comando, juego, ia, &selecciono);
+		resultado = ejecutar_comando(comando, juego, ia, pokemones_usuario, &selecciono);
 	}
 
 	if (resultado == OK) {
@@ -318,6 +352,6 @@ int main(int argc, char *argv[])
 		printf(VERDE "Gracias por jugar\n" COMUN);
 	}
 	
-        liberar_todo(juego, ia);
+        liberar_todo(juego, ia, pokemones_usuario);
         return resultado == OK ? 0 : -1;
 }
