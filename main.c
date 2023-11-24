@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <time.h>
+#include <ctype.h>
 
 #include "src/pokemon.h"
 #include "src/ataque.h"
@@ -42,6 +43,13 @@ struct paquete {
 	adversario_t *ia;
 	lista_t *pokemones_usuario;
 };
+
+void tolower_str(char *str, size_t tamanio) 
+{
+	for (size_t i = 0; i < tamanio; i++)
+		str[i] = (char )tolower(str[i]);
+
+}
 
 void informar_aviso(char *aviso, bool error)
 {
@@ -236,7 +244,6 @@ RESULTADO jugar_ronda(void *_paquete)
 	struct paquete *paquete = _paquete;
 	juego_t *juego = paquete->juego;
 	adversario_t *ia = paquete->ia;
-	lista_t *pokemones_usuario = paquete->pokemones_usuario;
 
 	jugada_t jugada_ia = adversario_proxima_jugada(ia);
 	jugada_t jugada_usuario = { .ataque = "", .pokemon = "" };
@@ -279,6 +286,9 @@ bool verificar_comando(char *comando, bool *selecciono)
 		return false;
 	} else if (!strcmp(comando, CMD_SELECCIONAR)) {
 		*selecciono = true;
+		return true;
+	} else if (!strcmp(comando, CMD_MOSTRAR) && !*selecciono) {
+		informar_aviso("No tenes pokemones asignados, intenta con 's'", true);
 		return true;
 	}
 	return true;	
@@ -351,7 +361,8 @@ int main(int argc, char *argv[])
 		char comando[MAX_CARACTERES];
 		printf(MAGNETA "==TP2== " COMUN);
 		fscanf(stdin, "%s", comando);
-		
+		tolower_str(comando, strlen(comando));
+
 		if (verificar_comando(comando, &selecciono))
 			resultado = ejecutar_comando(menu, comando, &paquete); 
 

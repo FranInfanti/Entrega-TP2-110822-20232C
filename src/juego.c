@@ -19,7 +19,7 @@
 struct jugador {
 	int puntos;
 	hash_t *pokemones;
-	abb_t *ataques_disponibles; 
+	abb_t *ataques_disponibles;
 };
 
 struct juego {
@@ -29,7 +29,6 @@ struct juego {
 	struct jugador jugador1;
 	struct jugador jugador2;
 };
-
 
 /*
  * Recibe la direccion de memoria de un jugador.
@@ -41,8 +40,6 @@ bool reservar_jugador(struct jugador *jugador)
 {
 	jugador->pokemones = hash_crear(MAX_POKEMONES);
 	jugador->ataques_disponibles = abb_crear(comparador_abb);
-
-
 	return jugador->pokemones && jugador->ataques_disponibles;
 }
 
@@ -87,7 +84,8 @@ bool existe_pokemon(lista_t *listado, const char **nombres,
 {
 	bool existe = true;
 	for (int i = 0; i < tamanio; i++)
-		pokemones[i] = lista_buscar_elemento(listado, comparar_nombres, (void *)nombres[i]);
+		pokemones[i] = lista_buscar_elemento(listado, comparar_nombres,
+						     (void *)nombres[i]);
 
 	for (int i = 0; i < tamanio && existe; i++)
 		existe = pokemones[i] != NULL;
@@ -104,11 +102,21 @@ bool guardar_pokemones(juego_t *juego, JUGADOR jugador, pokemon_t **pokemones,
 		       int tamanio)
 {
 	for (int i = 0; i < tamanio - 1; i++) {
-		hash_insertar(jugador ? juego->jugador2.pokemones : juego->jugador1.pokemones, pokemon_nombre(pokemones[i]), pokemones[i], NULL);
-		con_cada_ataque(pokemones[i], guardar_ataques, jugador ? juego->jugador2.ataques_disponibles : juego->jugador1.ataques_disponibles);
+		hash_insertar(jugador ? juego->jugador2.pokemones :
+					juego->jugador1.pokemones,
+			      pokemon_nombre(pokemones[i]), pokemones[i], NULL);
+		con_cada_ataque(pokemones[i], guardar_ataques,
+				jugador ? juego->jugador2.ataques_disponibles :
+					  juego->jugador1.ataques_disponibles);
 	}
-	hash_insertar(!jugador ? juego->jugador2.pokemones : juego->jugador1.pokemones, pokemon_nombre(pokemones[tamanio - 1]), pokemones[tamanio - 1], NULL);
-	con_cada_ataque(pokemones[tamanio - 1], guardar_ataques, !jugador ? juego->jugador2.ataques_disponibles : juego->jugador1.ataques_disponibles);
+	
+	hash_insertar(!jugador ? juego->jugador2.pokemones :
+				 juego->jugador1.pokemones,
+		      pokemon_nombre(pokemones[tamanio - 1]),
+		      pokemones[tamanio - 1], NULL);
+	con_cada_ataque(pokemones[tamanio - 1], guardar_ataques,
+			!jugador ? juego->jugador2.ataques_disponibles :
+				   juego->jugador1.ataques_disponibles);
 
 	return true;
 }
@@ -122,13 +130,15 @@ bool guardar_pokemones(juego_t *juego, JUGADOR jugador, pokemon_t **pokemones,
  * 
  * Devuelve true si la jugada es valida y false en caso contrario. 
  */
-bool validar_jugada(hash_t *pokemones, abb_t *ataques_disponibles, jugada_t jugada,
-		    pokemon_t **pokemon, struct ataque **ataque)
+bool validar_jugada(hash_t *pokemones, abb_t *ataques_disponibles,
+		    jugada_t jugada, pokemon_t **pokemon,
+		    struct ataque **ataque)
 {
 	*pokemon = hash_obtener(pokemones, jugada.pokemon);
 	if (!*pokemon)
 		return false;
-	*ataque = (struct ataque *)pokemon_buscar_ataque(*pokemon, jugada.ataque);
+	*ataque =
+		(struct ataque *)pokemon_buscar_ataque(*pokemon, jugada.ataque);
 	if (!*ataque)
 		return false;
 
@@ -144,7 +154,10 @@ bool validar_jugada(hash_t *pokemones, abb_t *ataques_disponibles, jugada_t juga
 bool registrar_ataques(juego_t *juego, struct ataque *jugador1,
 		       struct ataque *jugador2)
 {
-	return abb_quitar(juego->jugador1.ataques_disponibles, (void *)jugador1) && abb_quitar(juego->jugador2.ataques_disponibles, (void *)jugador2);
+	return abb_quitar(juego->jugador1.ataques_disponibles,
+			  (void *)jugador1) &&
+	       abb_quitar(juego->jugador2.ataques_disponibles,
+			  (void *)jugador2);
 }
 
 /*
@@ -209,7 +222,8 @@ juego_t *juego_crear()
 		return NULL;
 	}
 
-	if (!reservar_jugador(&juego->jugador1) || !reservar_jugador(&juego->jugador2)) {
+	if (!reservar_jugador(&juego->jugador1) ||
+	    !reservar_jugador(&juego->jugador2)) {
 		juego_destruir(juego);
 		return NULL;
 	}
@@ -241,11 +255,13 @@ lista_t *juego_listar_pokemon(juego_t *juego)
 	return juego ? juego->pokemones : NULL;
 }
 
-JUEGO_ESTADO juego_seleccionar_pokemon(juego_t *juego, JUGADOR jugador, const char *nombre1, const char *nombre2, const char *nombre3)
+JUEGO_ESTADO juego_seleccionar_pokemon(juego_t *juego, JUGADOR jugador,
+				       const char *nombre1, const char *nombre2,
+				       const char *nombre3)
 {
 	if (!juego || !nombre1 || !nombre2 || !nombre3)
 		return ERROR_GENERAL;
-        
+
 	pokemon_t *pokemones[MAX_POKEMONES];
 	const char *nombres[] = { nombre1, nombre2, nombre3 };
 	int tamanio = MAX_POKEMONES;
@@ -256,7 +272,9 @@ JUEGO_ESTADO juego_seleccionar_pokemon(juego_t *juego, JUGADOR jugador, const ch
 	if (!existe_pokemon(juego->pokemones, nombres, pokemones, tamanio))
 		return POKEMON_INEXISTENTE;
 
-	return guardar_pokemones(juego, jugador, pokemones, tamanio) ? TODO_OK : ERROR_GENERAL;
+	return guardar_pokemones(juego, jugador, pokemones, tamanio) ?
+		       TODO_OK :
+		       ERROR_GENERAL;
 }
 
 resultado_jugada_t juego_jugar_turno(juego_t *juego, jugada_t jugada_jugador1,
@@ -268,24 +286,34 @@ resultado_jugada_t juego_jugar_turno(juego_t *juego, jugada_t jugada_jugador1,
 
 	pokemon_t *pokemon_jugador1;
 	struct ataque *ataque_jugador1;
-	if (!validar_jugada(juego->jugador1.pokemones, juego->jugador1.ataques_disponibles, jugada_jugador1, &pokemon_jugador1, &ataque_jugador1))
+	if (!validar_jugada(juego->jugador1.pokemones,
+			    juego->jugador1.ataques_disponibles,
+			    jugada_jugador1, &pokemon_jugador1,
+			    &ataque_jugador1))
 		return jugada;
 
 	pokemon_t *pokemon_jugador2;
 	struct ataque *ataque_jugador2;
-	if (!validar_jugada(juego->jugador2.pokemones, juego->jugador2.ataques_disponibles, jugada_jugador2, &pokemon_jugador2, &ataque_jugador2))
+	if (!validar_jugada(juego->jugador2.pokemones,
+			    juego->jugador2.ataques_disponibles,
+			    jugada_jugador2, &pokemon_jugador2,
+			    &ataque_jugador2))
 		return jugada;
 
 	if (!registrar_ataques(juego, ataque_jugador1, ataque_jugador2))
 		return jugada;
 
-	jugada.jugador1 = efectividad(ataque_jugador1->tipo, pokemon_tipo(pokemon_jugador2));
-	jugada.jugador2 = efectividad(ataque_jugador2->tipo, pokemon_tipo(pokemon_jugador1));
+	jugada.jugador1 = efectividad(ataque_jugador1->tipo,
+				      pokemon_tipo(pokemon_jugador2));
+	jugada.jugador2 = efectividad(ataque_jugador2->tipo,
+				      pokemon_tipo(pokemon_jugador1));
 
-	juego->jugador1.puntos += determinar_puntos((int)ataque_jugador1->poder, jugada.jugador1);
-	juego->jugador2.puntos += determinar_puntos((int)ataque_jugador2->poder, jugada.jugador2);
+	juego->jugador1.puntos +=
+		determinar_puntos((int)ataque_jugador1->poder, jugada.jugador1);
+	juego->jugador2.puntos +=
+		determinar_puntos((int)ataque_jugador2->poder, jugada.jugador2);
+	
 	juego->ronda++;
-
 	return jugada;
 }
 

@@ -26,7 +26,6 @@ struct paquete {
 	int tamanio;
 };
 
-
 /*
  * Recibe un array de posiciones y un rango entre el cual se pueden generar numeros.
  * 
@@ -34,14 +33,14 @@ struct paquete {
  */
 void cargar_posiciones(size_t *posiciones, size_t tamanio, size_t rango)
 {
-	for (size_t i = 0; i < tamanio; i++) 
+	for (size_t i = 0; i < tamanio; i++)
 		posiciones[i] = ((size_t)rand() % rango);
 
 	bool repetido = false;
 	for (size_t i = 0; i < tamanio && !repetido; i++) {
 		for (size_t j = i + 1; j < tamanio && !repetido; j++)
 			repetido = posiciones[i] == posiciones[j];
-	}		
+	}
 
 	if (repetido)
 		cargar_posiciones(posiciones, tamanio, rango);
@@ -54,10 +53,12 @@ void cargar_posiciones(size_t *posiciones, size_t tamanio, size_t rango)
  * y guarda esos pokemones en el array de pokemon. Ademas guarda los nombres de estos en el 
  * array de nombres.
  */
-void elegir_pokemones(adversario_t *adversario, pokemon_t **pokemones, char ***nombres, size_t *posiciones)
+void elegir_pokemones(adversario_t *adversario, pokemon_t **pokemones,
+		      char ***nombres, size_t *posiciones)
 {
 	for (size_t i = 0; i < MAX_POKEMONES; i++) {
-		pokemones[i] = lista_elemento_en_posicion(adversario->pokemones_disponibles, posiciones[i]);
+		pokemones[i] = lista_elemento_en_posicion(
+			adversario->pokemones_disponibles, posiciones[i]);
 		*nombres[i] = (char *)pokemon_nombre(pokemones[i]);
 	}
 }
@@ -84,11 +85,12 @@ void adversario_cargar_ataques(const struct ataque *actual, void *_paquete)
  * false en caso de que haya por lo menos uno.
  */
 bool pokemon_sin_ataques(abb_t *ataques, struct paquete paquete)
-{	
+{
 	int ataques_no_encontrados = 0;
-	for (int i = 0; i < paquete.tamanio ; i++) 
-		ataques_no_encontrados += !abb_buscar(ataques, paquete.ataques[i]);
-	
+	for (int i = 0; i < paquete.tamanio; i++)
+		ataques_no_encontrados +=
+			!abb_buscar(ataques, paquete.ataques[i]);
+
 	return ataques_no_encontrados == paquete.tamanio;
 }
 
@@ -96,11 +98,10 @@ adversario_t *adversario_crear(lista_t *pokemon)
 {
 	if (!pokemon)
 		return NULL;
-	
+
 	adversario_t *adversario = calloc(1, sizeof(struct adversario));
 	if (!adversario)
 		return NULL;
-	
 	adversario->pokemones_disponibles = pokemon;
 
 	adversario->pokemones = lista_crear();
@@ -118,7 +119,8 @@ adversario_t *adversario_crear(lista_t *pokemon)
 	return adversario;
 }
 
-bool adversario_seleccionar_pokemon(adversario_t *adversario, char **nombre1, char **nombre2, char **nombre3)
+bool adversario_seleccionar_pokemon(adversario_t *adversario, char **nombre1,
+				    char **nombre2, char **nombre3)
 {
 	if (!adversario || !nombre1 || !nombre2 || !nombre3)
 		return false;
@@ -127,14 +129,16 @@ bool adversario_seleccionar_pokemon(adversario_t *adversario, char **nombre1, ch
 	pokemon_t *pokemones[MAX_POKEMONES];
 	size_t posiciones[MAX_POKEMONES];
 
-	cargar_posiciones(posiciones, MAX_POKEMONES, lista_tamanio(adversario->pokemones_disponibles));
+	cargar_posiciones(posiciones, MAX_POKEMONES,
+			  lista_tamanio(adversario->pokemones_disponibles));
 	elegir_pokemones(adversario, pokemones, nombres, posiciones);
 
 	for (int i = 0; i < MAX_POKEMONES - 1; i++) {
 		lista_insertar(adversario->pokemones, pokemones[i]);
-		con_cada_ataque(pokemones[i], guardar_ataques, adversario->ataques);
+		con_cada_ataque(pokemones[i], guardar_ataques,
+				adversario->ataques);
 	}
-		
+
 	return true;
 }
 
@@ -144,7 +148,8 @@ bool adversario_pokemon_seleccionado(adversario_t *adversario, char *nombre1,
 	if (!adversario)
 		return false;
 
-	pokemon_t *pokemon = lista_buscar_elemento(adversario->pokemones_disponibles, comparar_nombres, nombre3);
+	pokemon_t *pokemon = lista_buscar_elemento(
+		adversario->pokemones_disponibles, comparar_nombres, nombre3);
 	if (!pokemon)
 		return false;
 
@@ -159,30 +164,35 @@ jugada_t adversario_proxima_jugada(adversario_t *adversario)
 		return jugada;
 
 	size_t posicion_pokemon;
-	cargar_posiciones(&posicion_pokemon, 1, lista_tamanio(adversario->pokemones));
-	pokemon_t *pokemon = lista_elemento_en_posicion(adversario->pokemones, posicion_pokemon);
+	cargar_posiciones(&posicion_pokemon, 1,
+			  lista_tamanio(adversario->pokemones));
+	pokemon_t *pokemon = lista_elemento_en_posicion(adversario->pokemones,
+							posicion_pokemon);
 
 	struct paquete paquete = { .tamanio = 0 };
 	con_cada_ataque(pokemon, adversario_cargar_ataques, &paquete);
 
-	size_t posicion_ataque; 
+	size_t posicion_ataque;
 	cargar_posiciones(&posicion_ataque, 1, MAX_ATAQUES);
 
 	int i = 0;
-	while (!abb_buscar(adversario->ataques, paquete.ataques[posicion_ataque]) && i < MAX_ATAQUES) {
+	while (!abb_buscar(adversario->ataques,
+			   paquete.ataques[posicion_ataque]) &&
+	       i < MAX_ATAQUES) {
 		cargar_posiciones(&posicion_ataque, 1, MAX_ATAQUES);
 		i++;
 	}
-		
+
 	if (i == MAX_ATAQUES)
 		return adversario_proxima_jugada(adversario);
 
-	abb_quitar(adversario->ataques, paquete.ataques[posicion_ataque]);	
+	abb_quitar(adversario->ataques, paquete.ataques[posicion_ataque]);
 	strcpy(jugada.ataque, paquete.ataques[posicion_ataque]->nombre);
 	strcpy(jugada.pokemon, pokemon_nombre(pokemon));
 
-	if (pokemon_sin_ataques(adversario->ataques, paquete)) 
-		lista_quitar_de_posicion(adversario->pokemones, posicion_pokemon);	
+	if (pokemon_sin_ataques(adversario->ataques, paquete))
+		lista_quitar_de_posicion(adversario->pokemones,
+					 posicion_pokemon);
 
 	return jugada;
 }
