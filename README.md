@@ -36,7 +36,7 @@ El juego se repite hasta que no haya mas ataques para batallar. Y gana el jugado
 
 ---
 <div align="center">
-<img width="45%" src="img/diagrama_de_juego.png">
+<img width="60%" src="img/diagrama_de_juego.png">
 </div>
 <div align="center">Diagrama de flujo del programa</div>
 
@@ -50,6 +50,11 @@ Para poder implementar la logica del juego, se definieron dos estructuras y se u
 - `struct juego` es la estructura principal. En esta se almacena la ronda en la que se encuentran los jugadores, la informacion de un archivo de pokemones y la informacion de los dos jugadores que esta almacenada en la siguiente estructura creada.
 - `struct jugador`, esta estructura almacena los puntos del jugador, los pokemones que este tiene y los ataques que tiene disponible.
 
+Antes de pasar a explicar como se implemento el juego y por que se usaron ciertos **TDAs**, voy a mencionar por encima explicando su complejidad las funciones triviales de este **TDA**.
+- `juego_crear` crea el juego, es decir, reserva toda la memoria que sea necesaria para poder llevar a cabo el juego. En los casos donde se usaron otros **TDAs** para guardar informacion, se utilizo su respectiva funcion creadora. Veamos que la complejidad de esto es constante $O(1)$, pues solamente estamos reservando bloques de tamaño adecuado y guardando sus direcciones de memoria.
+- `juego_destruir` libera toda la memoria que fue reservada para poder usar el juego. En los casos donde se utilizo otro **TDA** se uso sus respectivas funciones destructoras. Veamos que la complejidad de esta funcion siempre es $O(n)$, pues si reservamos y utilizamos $n$ bloques de memoria, vamos a tener que liberar los $n$ bloques.
+- Las funciones relacionadas a saber cierto dato acerca del juego, como: `juego_listar_pokemon`, `juego_obtener_puntaje` y `juego_finalizado`. Tienen complejidad constante $O(1)$, pues para devolver un resultado a estas funciones, lo que se hace es acceder a un campo de la estructura a la cual tenemos acceso directo.
+
 Como sabemos, el usuario para poder empezar el juego necesita proporcionar un archivo con pokemones y tres ataques, todo esto esta escrito segun un formato. Por lo tanto es por eso que hago uso del **TDA** `pokemon.h`, este proporciona una funcion la cual lee de un archivo segun un formato y de lo que lee lo guarda en una estructura en memoria. Una vez termina de leer devuelve un puntero a esa estructura, `informacion_pokemon_t`, que contiene toda la informacion de los pokemones. La complejidad que tiene leer el archivo y guardarlo en memoria es $O(n²)$, pues se deben leer $n$ pokemones y luego se los ordena usando `Bubble Sort` que tiene complejidad cuadratica. Entonces termina siendo una suma de algo que tiene complejidad lineal y algo que tiene cuadratica, y para **Big-O** el termino cuadratico pesa mas.
 
 El problema es que este **TDA** no tiene funciones comodas para poder acceder los datos de todos los pokemones. Entonces por este problema es que hago uso del **TDA** `lista.h`. Lo que hice fue insertar cada pokemon, con su respectiva informacion, en una `lista` y de esta manera tengo un acceso mas comodo a los datos de los pokemones. La complejidad que tiene insertar los $n$ pokemones al final de la `lista` es $O(n)$, pues debemos recorrer los $n$ pokemones e insertarlos al final de la lista lo cual tiene una complejidad constante. 
@@ -62,7 +67,7 @@ Y como **Big-O** toma el peor caso, entonces $T(n) = O(n²)$.
 
 ---
 <div align="center">
-<img width="45%" src="img/archivo_cargado.png">
+<img width="50%" src="img/archivo_cargado.png">
 </div>
 <div align="center">Representacion de como se veria en memoria luego de haber cargado la informacion</div>
 
@@ -85,7 +90,7 @@ Y esto para **Big-O** es $O(n)$.
 
 ---
 <div align="center">
-<img width="45%" src="img/pokemones_jugador.png">
+<img width="50%" src="img/pokemones_jugador.png">
 </div>
 <div align="center">Representacion de como se veria insertado un pokemon con sus ataques en el hash y el abb. No estan dibujados los punteros NULL</div>
 
@@ -120,8 +125,54 @@ Y esto para **Big-O** es $O(log(n))$.
 ---
 
 ### Adversario.h
+Este **TDA** consiste en la logica de un jugador del juego. Es decir, el objetivo que tiene este **TDA** es ser un jugador automatico del juego, una `ia`.
 
+Para poder implementar el adversario se utiliza una estructura unica, `struct adversario`, la cual va almacenar un puntero a la `lista` donde estan almacenados todos los pokemones de los que va a poder elejir el adversario, a su vez tambien otro puntero a una `lista` la cual tendra los tres pokemones pertenecientes al adversario y por ultimo un `abb`, que va a ser utilizado para determinar si el ataque fue usado o no.
 
+---
+<div align="center">
+<img width="60%" src="img/.png">
+</div>
+<div align="center">Representacion de como se veria en memoria la estructura del adversario con informacion cargada</div>
 
+---
+Uso una `lista` en los dos primeros casos, porque como el adversario va a elegir siempre pokemones al azar *(sino es muy aburrido el juego)* entonces la `lista` me proporciona una funcion, `lista_elemento_en_posicion`, la cual a partir de una posicion de la `lista` me devuelve lo que hay en esta. Entonces yo puedo generar posiciones al azar con cierto rango y obtener pokemones validos al azar. Algo que es muy util a la hora de seleccionar los primeros tres pokemones y el pokemon para hacer la jugada. Ahora, elijo un `abb` con el proposito de registrar los ataques no usados, por el mismo motivo que lo utilice en juego. 
+
+Cuando se quiear crear un adversario, se utiliza la funcion `adversario_crear`. Esta lo que se hace es reservar un bloque de memoria en el heap para que pueda almacenar todo lo mencionado anteriormente. Al igual que en el juego, cuando se este usando un **TDA** para almacenar cierta infomacion, se utiliza su respectiva funcion creadora. Notemos que la complejidad de crear un adversario es constante $O(1)$, pues solamente estamos reservando bloques de memoria y guardandonos su direccion de memoria.
+
+Si creamos un adversario entonces tenemos que destruirlo una vez terminemos de utilizarlo, por lo tanto es por eso que se proporciona la funcion `adversario_destruir`, la cual libera la memoria que estaba siendo utilizada. Tambien como en el caso de la creacion, en el caso de los **TDAs** se utiliza su respectiva funcion destructora. La complejidad de esta operacion es lineal $O(n)$, pues si reservamos $n$ bloques de memoria, debemos liberar cada uno de ellos.
+
+Lo mas importante que va a realizar el adversario, es seleccionar los tres pokemones y luego seleccionar un pokemon con un ataque para hacer una jugada. En esta implementacion la `ia` es perfecta, es decir, nunca se equivoca, luego cada pokemon que seleccione y cada jugada que haga va a ser siempre valida. Entonces para la funcion `adversario_seleccionar_pokemon` y `adversario_proxima_jugada`, este siempre devuelve algo valido, mientras que no se haya ingresado algo erroneo.
+
+Para poder hacer que el adversario seleccione tres pokemones, se debe utilizar la funcion `adversario_seleccionar_pokemon`. Lo que se hizo para que el adversario eliga tres pokemones de la lista sin repetir ninguno, fue crear un array de posiciones. En cada posicion se utiliza `rand() % rango`, lo cual nos da un numero aleatorio entre el rango que le demos. Logicamente, el rango en esta caso es la cantidad de elementos que tiene la `lista`. Una vez que tenemos las tres posiciones unicas, buscamos los pokemones en la `lista` y se inserta los primeros dos en otra `lista` donde se registran los pokemones propios. A su vez, se obtienen los ataques de esos pokemones y se los guarda en un `abb`.
+
+---
+<div align="center">
+<img width="60%" src="img/.png">
+</div>
+<div align="center">Representacion de como se veria en memoria la seleccion de un pokemon</div>
+
+---
+Analizemos la complejidad de esta funcion. Veamos que lo primero que hacemos es crear el array con las posiciones, ahora para verificar que sean unicas, vamos a tener que recorrer el array varias veces. Pero como en este juego solamente se permiten tres pokemones, entonces el tamaño del array es tres. Por lo tanto la complejidad que tiene recorrer un array de tres elementos, tiende mas a ser $O(1)$ que $O(n)$.
+
+Lo siguiente que tenemos que hacer es buscar en una `lista` tres pokemones, sabemos que buscar un elemento en una `lista` tiene complejidad lineal, aunque lo estemos haciendo tres veces, pues hacerlo una y tres es casi lo mismo. Pero ademas de buscarlos, tambien debemos insertarlos al final de una `lista`, lo cual tiene complejidad es constante. Entonces buscar los pokemones e insertar los que corresponden en la `lista` tiene complejidad $O(n)$. Tambien al mismo tiempo que estamos insertando los pokemones *(del adversario)*, debemos insertar sus tres ataques *(que lo podemos considerar como insertar uno solo)* en el `abb`, y sabemos que la complejidad de esto *(si el `abb` se mantiene balanceado)* es $O(log(n))$. Luego:
+
+$$ T(n) = O(1) + O(n) + O(log(n))$$
+
+Y como el termino lineal pesa mas que el logaritmico, la complejidad termina siendo $O(n)$.
+
+Como el adversario selecciona tres pokemones y solo dos van para el, me estaria faltando el tercer pokemon del adversario. Pero para eso esta la funcion `adversario_pokemon_seleccionado`, la cual me pasa las elecciones del usuario para que el adversario lo tenga en cuenta a la hora de hacer sus elecciones. Yo implemento esta funcion solo para recibir el tercer pokemon del adversario y guardarlo en la `lista` que contiene los pokemones del adversario y guardar los ataques delen el `abb`. Veamos que la complejidad de la insercion en la `lista` es constante y la insercion en el `abb` logaritmica *(suponiendo que esta balanceado)*. Luego la complejidad total es: 
+
+$$T(n)= O(1) + O(log(n))$$
+
+Y esto para **Big-O** es $O(log(n))$.
+
+Para poder hacer que el adversario haga una jugada, esta la funcion `adversario_proxima_jugada`. Primero debo generar una posicion aleatoria que puede ir desde cero hasta tres *(que seria el tamaño de la lista de sus pokemones)*. Una vez obtenida dicha posicion obtenemos el pokemon que se encuentra en esta, de dicho pokemon me cargo en un array sus tres ataques, usando la funcion `con_cada_ataque`. Nuevamente genero una posicion aleatoria entre cero y tres y selecciono el ataque que toque. Veamos que esto tiene una complejidad constante, es cierto que tenemos que recorrer una `lista` y despues los ataques del pokemon, pero la `lista` siempre tiene tamaño tres o menos y los ataques son siempre tres, asi que lo podemos considerar como constante y por eso digo que es $O(1)$.
+
+Ahora debo verificar que el ataque en la posicion generada este en el `abb`, entonces planteo un loop, mientras no este en el `abb` y no haya iterado una cantidad de veces igual a la de los ataques, genero una nueva posicion aleatoria. La primera condicion se usa para verificar que el ataque en la posicion generada este en el `abb` y la segunda condicion se usa para alivianar la carga de la funcion. Si en tres oportunidades no se genero una posicion donde hay un ataque sin usar, entonces vuelvo a ejecutar la funcion y con suerte se selecciona otro pokemon que tarde menos en elegir otro ataque.
+
+Una vez tenemos validados el pokemon y su ataque, se procede eliminando el ataque del `abb`. Y antes de salir de la funcion se verifica que el pokemon seleccionado siga teniendo ataques disponibles para ser usados. Entonces lo que hago es recorrer el `abb` y verificar si estan, por lo menos uno, de los ataques del pokemon. Si no hay ninguno, entonces elimino ese pokemon de la `lista`. Pues no tiene sentido manterlo, ya que no voy a poder usarlo para nada.
+
+Veamos que la complejidad que tiene seleccionar 
 
 ### Menu.h

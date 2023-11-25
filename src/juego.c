@@ -182,7 +182,7 @@ RESULTADO_ATAQUE efectividad(enum TIPO ataque, enum TIPO pokemon)
 	}
 
 	if (ataque == FUEGO && pokemon == AGUA)
-		pos_actual = 5;
+		pos_adversario = -1;
 
 	if (ataque == AGUA && pokemon == FUEGO)
 		pos_adversario = 5;
