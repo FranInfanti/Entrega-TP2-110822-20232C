@@ -108,11 +108,11 @@ Cuando se quiera hacer una jugada se debe utilizar la función `juego_jugar_turn
 
 - Para determinar la efectividad del ataque se me ocurrió crear un array con todos los tipos. Están acomodados de tal manera que el tipo en la posición $x$ es efectivo contra el tipo en $x+1$ e inefectivo contra el que está $x-1$. Entonces lo primero que hago es buscar las posiciones de los tipos en el array. Y plantear la cuenta `pos_tipo_ataque` - `pos_tipo_pokemon`, si:
 
- - Es igual a $-1$, entonces el ataque es efectivo, pues eso significa que `pos_tipo_pokemon` $>$ `pos_tipo_ataque`, es decir, el tipo del ataque está en $x$ y el del pokémon en $x+1$, pues difieren en uno.
+  - Es igual a $-1$, entonces el ataque es efectivo, pues eso significa que `pos_tipo_pokemon` $>$ `pos_tipo_ataque`, es decir, el tipo del ataque está en $x$ y el del pokémon en $x+1$, pues difieren en uno.
 
- - Es igual a $1$, entonces el ataque es inefectivo, pues es la inversa de lo que pasó antes. En este caso `pos_tipo_pokemon` $<$ `pos_tipo_ataque`, y como difieren en uno, significa que el tipo del ataque está en $x$ y el del pokémon en $x-1$.
+  - Es igual a $1$, entonces el ataque es inefectivo, pues es la inversa de lo que pasó antes. En este caso `pos_tipo_pokemon` $<$ `pos_tipo_ataque`, y como difieren en uno, significa que el tipo del ataque está en $x$ y el del pokémon en $x-1$.
 
- - Para cualquier otro valor el ataque es regular.
+  - Para cualquier otro valor el ataque es regular.
 
  La complejidad que tiene determinar la efectividad es constante, primero porque determinar la posición en el array es constante, ya que siempre tiene la misma cantidad de elementos. Y luego hacer la cuenta `pos_tipo_ataque` - `pos_tipo_pokemon`, es hacer una operación simple.
 
@@ -182,3 +182,32 @@ $$T(n) = O(1) + O(log(n)) + O(log(n))$$
 Y para **Big-O** esto es igual a $T(n) = O(log(n))$.
 
 ### Menu.h
+Estem **TDA** fue implementado con el proposito de facilitar el `main`. El objetivo es que sea un **TDA** que guarde un comando, la descripcion de este y la funcion que ejecuta.
+
+Para implementar este **TDA** se definio una estrctura, `struct menu`, la cual almacenara un puntero a un `hash`. En dicho `hash` se guardaran todo lo especificado anteriormente. Elijo un `hash`, porque el acceso a los comandos tiene que ser insantaneo, y sabemos que buscar un elemento en un `hash` es casi instantaneo.
+
+Para usar el menu, va a ser necesario crearlo, por eso es que se proporciona la funcion `menu_crear`. Esta reserva la memoria necesaria para almacenar lo mencionado anteriormente. Veamos que la complejidad de esto es constante $O(1)$, pues solamente estamos reservando bloques de memoria.
+
+---
+<div align="center">
+<img width="60%" src="img/.png">
+</div>
+<div align="center">Representacion del menu creado en memoria</div>
+
+---
+A su vez tambien se propociona una funcion destructora, `menu_destruir`, la cual libera toda la memoria reservada previamente. En este caso la complejidad es lineal, pues si reservamos $n$ bloques de memoria, debemos liberarlos toddos. Entonces $T(n) = O(n)$.
+
+En el caso de que se quisiera insertar un comando se utiliza la funcion `comando_agregar`, esta lo que hace es insertar el comando junto a su descripcion y a funcion que ejectua en el `hash`. Por lo tanto, como la complejidad de insertar en un `hash` es lineal. La complejidad total de esta funcion es $T(n) = O(n)$.
+
+---
+<div align="center">
+<img width="60%" src="img/.png">
+</div>
+<div align="center">Representacion del menu con comandos en memoria</div>
+
+---
+Para poder ejecutar un comando se debe utilizar la funcion `ejecutar_comando`, la cual o que hace es buscar el comando en el `hash` y en el caso de que exista, entonces lo ejecuta. Luego veamos que la complejidad de esta funcion es $O(1)$, porque buscar en un `hash` es casi instantaneo.
+
+Tambien se proporciona una funcion que permite saber la descripcion que tiene un comando y otra que permite saber la cantidad de comandos que hay guardados en el menu. Ambas funciones tienen complejidad constante $O(1)$, pues en el primer caso, lo que se hace es buscar el comando y acceder a la descripcion de este y en el otro caso solo se accede a un valor que esta guardado en la estructura.
+
+Por ultimo, tambien se propociona un iterador interno. El cual recorre los comandos del menu y les aplica la funcion pasada por parametro hasta que se quiera dejar de recorrer, por eso la funcion es de tipo `bool`. En este caso la complejidad es lineal, pues en el peor caso debemos aplicarle la funcion a cada comando del menu.

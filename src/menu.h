@@ -1,5 +1,6 @@
 #ifndef MENU_H_
 #define MENU_H_
+#include <stdlib.h>
 
 typedef enum RESULTADO { ERROR, OK, SALIR, COMANDO_INVALIDO } RESULTADO;
 
