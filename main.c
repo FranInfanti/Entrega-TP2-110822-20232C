@@ -294,12 +294,12 @@ bool verificar_comando(char *comando, bool *selecciono)
 	return true;	
 }
 
-void liberar_todo(void *menu, void *juego, void *ia, void *pokemones)
+void liberar_todo(struct paquete paquete)
 {
-	lista_destruir(pokemones);
-        adversario_destruir(ia);
-        juego_destruir(juego);  
-	menu_destruir(menu);      
+	lista_destruir(paquete.pokemones_usuario);
+        adversario_destruir(paquete.ia);
+        juego_destruir(paquete.juego);  
+	menu_destruir(paquete.menu);      
 }
 
 bool agregar_comandos(menu_t *menu)
@@ -317,65 +317,78 @@ bool agregar_comandos(menu_t *menu)
 	return cantidad_comandos(menu) ==  TOTAL_COMANDOS;
 }
 
-int main(int argc, char *argv[])
+bool inicializar_todo(struct paquete *paquete, char *argv)
 {
-	srand(( unsigned)time(NULL));
-
-	menu_t *menu = menu_crear();
-	if (!agregar_comandos(menu)) {
-		liberar_todo(menu, NULL, NULL, NULL);
-		return -1;
+	paquete->menu = menu_crear();
+	if (!agregar_comandos(paquete->menu)) {
+		liberar_todo(*paquete);
+		return false;
 	}
 
-        juego_t *juego = juego_crear();
-	if (!juego) {
-		liberar_todo(menu, NULL, NULL, NULL);
-		return -1;
+        paquete->juego = juego_crear();
+	if (!paquete->juego) {
+		liberar_todo(*paquete);
+		return false;
 	}
 	
-	JUEGO_ESTADO estado = juego_cargar_pokemon(juego, "ejemplos/correcto.txt");
+	JUEGO_ESTADO estado = juego_cargar_pokemon(paquete->juego, argv);
         if (estado != TODO_OK) {
 		informar_aviso(estado == ERROR_GENERAL ? "El archivo no existe" : "La cantidad de pokemones es invalida, intenta con otro archivo", true);
-                liberar_todo(menu, juego, NULL, NULL);
-		return -1;
+                liberar_todo(*paquete);
+		return false;
         }
 
-	adversario_t *ia = adversario_crear(juego_listar_pokemon(juego));
-	if (!ia) {
-		liberar_todo(menu, juego, NULL, NULL);
-		return -1;
+	paquete->ia = adversario_crear(juego_listar_pokemon(paquete->juego));
+	if (!paquete->juego) {
+		liberar_todo(*paquete);
+		return false;
 	}
 
-	lista_t *pokemones_usuario = lista_crear();
-	if (!pokemones_usuario) {
-		liberar_todo(menu, juego, ia, NULL);
-		return -1;	
+	paquete->pokemones_usuario = lista_crear();
+	if (!paquete->pokemones_usuario) {
+		liberar_todo(*paquete);
+		return false;	
 	}
+
+	return true;
+}
+
+int main(int argc, char *argv[])
+{
+	if (argc != 2) {
+		informar_aviso("Che dromedario, mandame un archivo 😎", true);
+		return -1;
+	}
+		
+	srand(( unsigned)time(NULL));
+	struct paquete paquete = { .ia = NULL, .juego = NULL, .menu = NULL, .pokemones_usuario = NULL};
+
+	if (!inicializar_todo(&paquete, *(argv + 1)))
+		return -1;
 
 	RESULTADO resultado = OK;
 	bool selecciono = false;
-	struct paquete paquete = { .menu = menu, .juego = juego, .ia = ia, .pokemones_usuario = pokemones_usuario};
 
 	printf("Ingrese 'ayuda' para ver los comandos disponibles\n");
-	while (!juego_finalizado(juego) && (resultado == OK || resultado == COMANDO_INVALIDO)) {
+	while (!juego_finalizado(paquete.juego) && (resultado == OK || resultado == COMANDO_INVALIDO)) {
 		char comando[MAX_CARACTERES];
 		printf(MAGNETA "==TP2== " COMUN);
 		fscanf(stdin, "%s", comando);
 		tolower_str(comando, strlen(comando));
 
 		if (verificar_comando(comando, &selecciono))
-			resultado = ejecutar_comando(menu, comando, &paquete); 
+			resultado = ejecutar_comando(paquete.menu, comando, &paquete); 
 
 		if (resultado == COMANDO_INVALIDO)
 			informar_aviso("El comando no existe, intenta con 'ayuda'", true);
 	}
 
 	if (resultado == OK) {
-		ejecutar_comando(menu, CMD_PUNTAJE, &paquete);
-		printf("Parece que %s\n", juego_obtener_puntaje(juego, JUGADOR1) > juego_obtener_puntaje(juego, JUGADOR2) ? VERDE "ganaste, felicitaciones :)" COMUN : ROJO "perdiste, mala suerte :(" COMUN);
-		printf(VERDE "Gracias por jugar\n" COMUN);
+		ejecutar_comando(paquete.menu, CMD_PUNTAJE, &paquete);
+		printf("Parece que %s\n", juego_obtener_puntaje(paquete.juego, JUGADOR1) > juego_obtener_puntaje(paquete.juego, JUGADOR2) ? VERDE "ganaste, felicitaciones 😉" COMUN : ROJO "perdiste, mala suerte 😱" COMUN);
+		printf(VERDE "Gracias por jugar 😎\n" COMUN);
 	}
 	
-        liberar_todo(menu, juego, ia, pokemones_usuario);
+        liberar_todo(paquete);
         return resultado == OK ? 0 : -1;
 }
