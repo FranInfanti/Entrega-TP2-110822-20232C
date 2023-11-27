@@ -9,7 +9,7 @@ typedef struct menu menu_t;
 /*
  * Crea un menu. Devuele NULL en caso de error.
  */
-menu_t *menu_crear();
+menu_t *menu_crear(size_t capacidad);
 
 /*
  * Recibe un menu, un comando, la descripcion del comando y la funcion que va a ejecutar el comando.

@@ -39,13 +39,13 @@ void destruir_comandos(void *comando)
         free((struct info_comando *)comando);
 }
 
-menu_t *menu_crear()
+menu_t *menu_crear(size_t capacidad)
 {
         struct menu *menu = calloc(1, sizeof(struct menu));
         if (!menu)
                 return NULL;
         
-        menu->comandos = hash_crear(3);
+        menu->comandos = hash_crear(capacidad);
         if (!menu->comandos) {
                 free(menu);
                 return NULL;

@@ -319,7 +319,7 @@ bool agregar_comandos(menu_t *menu)
 
 bool inicializar_todo(struct paquete *paquete, char *argv)
 {
-	paquete->menu = menu_crear();
+	paquete->menu = menu_crear(TOTAL_COMANDOS >> 1);
 	if (!agregar_comandos(paquete->menu)) {
 		liberar_todo(*paquete);
 		return false;
