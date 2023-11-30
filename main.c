@@ -195,10 +195,10 @@ void mostrar_resultado_ataque(resultado_jugada_t resultado, jugada_t usuario, ju
 {
 	printf("El ataque ");
 	printf(BLANCO "%s " COMUN, usuario.ataque);
-	printf("fue %s contra el pokemon de tu adversario\n", resultado_ataque(resultado.jugador1));
+	printf("fue %s contra %s\n", resultado_ataque(resultado.jugador1), ia.pokemon);
 	printf("El ataque ");
 	printf(BLANCO "%s " COMUN, ia.ataque);
-	printf("fue %s contra tu pokemon\n", resultado_ataque(resultado.jugador2));
+	printf("fue %s contra %s\n", resultado_ataque(resultado.jugador2), usuario.pokemon);
 }
 
 RESULTADO listar_comandos(void *_paquete)
@@ -356,7 +356,7 @@ bool inicializar_todo(struct paquete *paquete, char *argv)
 int main(int argc, char *argv[])
 {
 	if (argc != 2) {
-		informar_aviso("Che dromedario, mandame un archivo 😎", true);
+		informar_aviso("Cuando ejecutes el programa, agregame el archivo 😎", true);
 		return -1;
 	}
 		

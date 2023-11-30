@@ -7,7 +7,6 @@
 #include "juego.h"
 
 struct info_comando {
-        const char *comando;
         char *descripcion;
         RESULTADO (*f)(void *);
 };
@@ -17,15 +16,15 @@ struct menu {
 };
 
 /*
- * 
+ * Crea un bloque donde se guarda la descripcion del comando y la funcion que ejecuta.
+ * Devuelve NULL en caso de error.
  */
-struct info_comando *cargar_info(const char* comando, char *descripcion, RESULTADO (*f)(void *))
+struct info_comando *cargar_info(char *descripcion, RESULTADO (*f)(void *))
 {
         struct info_comando *info_comando = malloc(sizeof(struct info_comando));
         if (!info_comando)
                 return NULL;
 
-        info_comando->comando = comando;
         info_comando->descripcion = descripcion;
         info_comando->f = f;
         return info_comando;
@@ -59,7 +58,7 @@ menu_t *comando_agregar(menu_t *menu, const char *comando, char *descripcion, RE
         if (!menu || !comando || !descripcion || !f)
                 return NULL;
 
-        struct info_comando *info_comando = cargar_info(comando, descripcion, f);
+        struct info_comando *info_comando = cargar_info(descripcion, f);
         if (!info_comando)
                 return NULL;
         
