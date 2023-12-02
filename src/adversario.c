@@ -14,6 +14,9 @@
 
 #define MAX_POKEMONES 3
 #define MAX_ATAQUES 3
+#define CANTIDAD_ADVERSARIOS 1
+#define ROJO "\x1b[31;1m"
+#define COMUN "\x1b[0m"
 
 struct adversario {
 	lista_t *pokemones_disponibles;
@@ -37,11 +40,16 @@ void cargar_posiciones(size_t *posiciones, size_t tamanio, size_t rango)
 		posiciones[i] = ((size_t)rand() % rango);
 
 	bool repetido = false;
-	for (size_t i = 0; i < tamanio && !repetido; i++) {
-		for (size_t j = i + 1; j < tamanio && !repetido; j++)
+	size_t i = 0;
+	while (i < tamanio && !repetido) {
+		size_t j = i + 1;
+		while (j < tamanio && !repetido) {
 			repetido = posiciones[i] == posiciones[j];
+			j++;
+		}
+		i++;
 	}
-
+	
 	if (repetido)
 		cargar_posiciones(posiciones, tamanio, rango);
 }
@@ -99,7 +107,7 @@ adversario_t *adversario_crear(lista_t *pokemon)
 	if (!pokemon)
 		return NULL;
 
-	adversario_t *adversario = calloc(1, sizeof(struct adversario));
+	adversario_t *adversario = calloc(CANTIDAD_ADVERSARIOS, sizeof(struct adversario));
 	if (!adversario)
 		return NULL;
 	adversario->pokemones_disponibles = pokemon;
@@ -139,6 +147,10 @@ bool adversario_seleccionar_pokemon(adversario_t *adversario, char **nombre1,
 				adversario->ataques);
 	}
 
+	printf(ROJO "%s\n" COMUN, *nombre1);
+	printf(ROJO "%s\n" COMUN, *nombre2);
+	printf(ROJO "%s\n" COMUN, *nombre3);
+
 	return true;
 }
 
@@ -157,42 +169,43 @@ bool adversario_pokemon_seleccionado(adversario_t *adversario, char *nombre1,
 	return lista_insertar(adversario->pokemones, pokemon);
 }
 
+void seleccionar_jugada(adversario_t *adversario, pokemon_t **pokemon, struct ataque **ataque)
+{
+	size_t posicion_pokemon;
+	cargar_posiciones(&posicion_pokemon, 1, lista_tamanio(adversario->pokemones));
+	*pokemon = lista_elemento_en_posicion(adversario->pokemones, posicion_pokemon);
+
+	struct paquete paquete = { .tamanio = 0 };
+	con_cada_ataque(*pokemon, adversario_cargar_ataques, &paquete);
+
+	size_t posicion_ataque;
+	cargar_posiciones(&posicion_ataque, 1, MAX_ATAQUES);
+
+	int i = 0;
+	while (!abb_buscar(adversario->ataques, paquete.ataques[posicion_ataque]) && i < MAX_ATAQUES) {
+		cargar_posiciones(&posicion_ataque, 1, MAX_ATAQUES);
+		i++;
+	}
+	*ataque = paquete.ataques[posicion_ataque];
+	
+	if (i == MAX_ATAQUES)
+		seleccionar_jugada(adversario, pokemon, ataque);	
+}
+
 jugada_t adversario_proxima_jugada(adversario_t *adversario)
 {
 	jugada_t jugada = { .ataque = "", .pokemon = "" };
 	if (!adversario)
 		return jugada;
 
-	size_t posicion_pokemon;
-	cargar_posiciones(&posicion_pokemon, 1,
-			  lista_tamanio(adversario->pokemones));
-	pokemon_t *pokemon = lista_elemento_en_posicion(adversario->pokemones,
-							posicion_pokemon);
+	pokemon_t *pokemon;
+	struct ataque *ataque;
 
-	struct paquete paquete = { .tamanio = 0 };
-	con_cada_ataque(pokemon, adversario_cargar_ataques, &paquete);
+	seleccionar_jugada(adversario, &pokemon, &ataque);
 
-	size_t posicion_ataque;
-	cargar_posiciones(&posicion_ataque, 1, MAX_ATAQUES);
-
-	int i = 0;
-	while (!abb_buscar(adversario->ataques,
-			   paquete.ataques[posicion_ataque]) &&
-	       i < MAX_ATAQUES) {
-		cargar_posiciones(&posicion_ataque, 1, MAX_ATAQUES);
-		i++;
-	}
-
-	if (i == MAX_ATAQUES)
-		return adversario_proxima_jugada(adversario);
-
-	abb_quitar(adversario->ataques, paquete.ataques[posicion_ataque]);
-	strcpy(jugada.ataque, paquete.ataques[posicion_ataque]->nombre);
+	abb_quitar(adversario->ataques, ataque);
+	strcpy(jugada.ataque, ataque->nombre);
 	strcpy(jugada.pokemon, pokemon_nombre(pokemon));
-
-	if (pokemon_sin_ataques(adversario->ataques, paquete))
-		lista_quitar_de_posicion(adversario->pokemones,
-					 posicion_pokemon);
 
 	return jugada;
 }

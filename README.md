@@ -164,9 +164,7 @@ Para verificar que el ataque en la posición generada esté en el `abb`, entonce
 
 Veamos que en el peor caso de todos, debemos iterar tres veces, entonces debemos buscar tres veces un elemento en un `abb`. Ahora, como este `abb` siempre tiene como máximo nueve elementos y a medida que progresa el juego pierde elementos, entonces la complejidad de búsqueda puede ser considerada como $O(1)$. Entonces estaríamos haciendo tres operaciones constantes que es lo mismo que hacer solo una. Luego validar que el ataque tiene complejidad constante $O(1)$.
 
-Una vez tenemos validados el pokemon y su ataque, se procede eliminando el ataque del `abb` y se verifica que el pokémon seleccionado siga teniendo ataques disponibles para ser usados, en caso de no tenerlos eliminó el pokemon de la `lista`. Para poder conseguir esto último, se recorre el `abb` y se verifica si existe por lo menos uno de los ataques del pokémon.
-
-Veamos que la complejidad de estas dos operaciones es $O(1)$, pues en el primer caso estamos eliminando un elemento de un `abb` que tiene una cantidad que a medida que transcurre el juego disminuye. Y en el segundo caso, estamos recorriendo una `lista` que también ocurre que a medida que transcurre el juego disminuye la cantidad.
+Una vez tenemos validados el pokemon y su ataque, se procede eliminando el ataque del `abb`. Veamos que la complejidad de esta operacion es $O(1)$, pues estamos eliminando un elemento de un `abb` que tiene una cantidad que a medida que transcurre el juego disminuye.
 
 Por lo tanto la complejidad total que tiene la función `adversario_proxima_jugada` es:
 
