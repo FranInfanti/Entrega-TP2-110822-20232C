@@ -162,10 +162,6 @@ bool adversario_seleccionar_pokemon(adversario_t *adversario, char **nombre1,
 				adversario->ataques);
 	}
 
-	printf(ROJO "%s\n" COMUN, *nombre1);
-	printf(ROJO "%s\n" COMUN, *nombre2);
-	printf(ROJO "%s\n" COMUN, *nombre3);
-
 	return true;
 }
 

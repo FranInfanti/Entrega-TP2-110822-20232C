@@ -17,7 +17,8 @@ menu_t *menu_crear(size_t capacidad);
  * Guarda el nuevo comando con sus caracteristicas en el menu.
  * Devuelve NULL en caso de error. 
  */
-menu_t *comando_agregar(menu_t *menu, const char *comando, char *descripcion, RESULTADO (*f)(void *));
+menu_t *comando_agregar(menu_t *menu, const char *comando, char *descripcion,
+			RESULTADO (*f)(void *));
 
 /*
  * Recibe un menu, un comando y un parametro auxiliar para enviar a la funcion del comando.
@@ -48,7 +49,10 @@ size_t cantidad_comandos(menu_t *menu);
  * 
  * Devuelve la cantidad de elementos a las que se le aplico la funcion o 0 en caso de error.
  */
-size_t con_cada_comando(menu_t *menu, bool (*f)(const char *comando, void *info_comando, void *aux), void *aux);
+size_t con_cada_comando(menu_t *menu,
+			bool (*f)(const char *comando, void *info_comando,
+				  void *aux),
+			void *aux);
 
 /* 
  * Destruye el menu y liberando la memoria que este ocupa.

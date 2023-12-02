@@ -151,12 +151,17 @@ void *leer_archivo(FILE *archivo, struct info_pokemon *info_pokemones)
 
 	while (!hay_problemas) {
 		lector = fscanf(archivo, FORMATO_POKE, aux->nombre, &tipo);
-		if (!validar_linea(lector, 2 * DELIMITADORES) || !validar_datos(tipo, &aux->tipo, aux->nombre))
+		if (!validar_linea(lector, 2 * DELIMITADORES) ||
+		    !validar_datos(tipo, &aux->tipo, aux->nombre))
 			hay_problemas = true;
 
 		while (n < MAX_ATAQUES && !hay_problemas) {
-			lector = fscanf(archivo, FORMATO_ATAQUE, aux->ataques[n].nombre, &tipo, &aux->ataques[n].poder);
-			if (!validar_linea(lector, 3 * DELIMITADORES) || !validar_datos(tipo, &aux->ataques[n].tipo, aux->nombre))
+			lector = fscanf(archivo, FORMATO_ATAQUE,
+					aux->ataques[n].nombre, &tipo,
+					&aux->ataques[n].poder);
+			if (!validar_linea(lector, 3 * DELIMITADORES) ||
+			    !validar_datos(tipo, &aux->ataques[n].tipo,
+					   aux->nombre))
 				hay_problemas = true;
 			if (!hay_problemas)
 				n++;
@@ -204,7 +209,8 @@ informacion_pokemon_t *pokemon_cargar_archivo(const char *path)
 	if (!validar_archivo(path))
 		return NULL;
 
-	struct info_pokemon *info_pokemones = calloc(1, sizeof(struct info_pokemon));
+	struct info_pokemon *info_pokemones =
+		calloc(1, sizeof(struct info_pokemon));
 	if (info_pokemones == NULL)
 		return NULL;
 
@@ -221,7 +227,8 @@ informacion_pokemon_t *pokemon_cargar_archivo(const char *path)
 		return NULL;
 	}
 	fclose(archivo);
-	bubble_sort(info_pokemones->pokemones, info_pokemones->cantidad_pokemones);
+	bubble_sort(info_pokemones->pokemones,
+		    info_pokemones->cantidad_pokemones);
 	return info_pokemones;
 }
 
@@ -241,7 +248,7 @@ int busqueda_binaria(struct pokemon *pokemones, int tope, const char *nombre)
 			fin = centro - 1;
 		else if (strcmp(pokemones[centro].nombre, nombre) < 0)
 			inicio = centro + 1;
-		else 
+		else
 			posicion = centro;
 	}
 	return posicion;
@@ -252,7 +259,8 @@ pokemon_t *pokemon_buscar(informacion_pokemon_t *ip, const char *nombre)
 	if (ip == NULL || nombre == NULL)
 		return NULL;
 
-	int posicion = busqueda_binaria(ip->pokemones, ip->cantidad_pokemones, nombre);
+	int posicion =
+		busqueda_binaria(ip->pokemones, ip->cantidad_pokemones, nombre);
 	return posicion == INVALIDO ? NULL : &ip->pokemones[posicion];
 }
 
@@ -278,9 +286,9 @@ const struct ataque *pokemon_buscar_ataque(pokemon_t *pokemon,
 		return NULL;
 
 	int posicion = INVALIDO;
-	for (int i = 0; i < MAX_ATAQUES	&& posicion == INVALIDO; i++) {
+	for (int i = 0; i < MAX_ATAQUES && posicion == INVALIDO; i++) {
 		if (strcmp(pokemon->ataques[i].nombre, nombre) == 0)
-			posicion = i;		
+			posicion = i;
 	}
 	return posicion == INVALIDO ? NULL : &pokemon->ataques[posicion];
 }
@@ -312,7 +320,7 @@ void pokemon_destruir_todo(informacion_pokemon_t *ip)
 	if (ip == NULL)
 		return;
 
-	for (int i = 0; i < ip->cantidad_pokemones; i++) 
+	for (int i = 0; i < ip->cantidad_pokemones; i++)
 		free(ip->pokemones[i].ataques);
 	free(ip->pokemones);
 	free(ip);
