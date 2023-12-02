@@ -294,7 +294,8 @@ void *abb_buscar(abb_t *arbol, void *elemento)
 		return NULL;
 	if (arbol->tamanio == 0)
 		return NULL;
-	return busqueda_binaria_abb(elemento, arbol->nodo_raiz, arbol->comparador);
+	return busqueda_binaria_abb(elemento, arbol->nodo_raiz,
+				    arbol->comparador);
 }
 
 bool abb_vacio(abb_t *arbol)
