@@ -182,10 +182,10 @@ RESULTADO_ATAQUE efectividad(enum TIPO ataque, enum TIPO pokemon)
 	}
 
 	if (ataque == FUEGO && pokemon == AGUA)
-		pos_adversario = pos_actual--;
+		pos_adversario = pos_actual - 1;
 
 	if (ataque == AGUA && pokemon == FUEGO)
-		pos_adversario = pos_actual++;
+		pos_adversario = pos_actual + 1;
 
 	if (pos_actual - pos_adversario == -1)
 		return ATAQUE_EFECTIVO;
