@@ -28,4 +28,3 @@ int comparar_nombres(void *pokemon, void *nombre);
 void guardar_ataques(const struct ataque *ataque, void *abb);
 
 #endif // _COMUN_H_
-

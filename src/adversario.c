@@ -49,7 +49,7 @@ void cargar_posiciones(size_t *posiciones, size_t tamanio, size_t rango)
 		}
 		i++;
 	}
-	
+
 	if (repetido)
 		cargar_posiciones(posiciones, tamanio, rango);
 }
@@ -88,11 +88,14 @@ void adversario_cargar_ataques(const struct ataque *actual, void *_paquete)
  * Selecciona un pokemon y un ataque de los que tiene disponible el usuario.
  * Apunta los punteros pasados al pokemon y ataque seleccionado.
  */
-void seleccionar_jugada(adversario_t *adversario, pokemon_t **pokemon, struct ataque **ataque)
+void seleccionar_jugada(adversario_t *adversario, pokemon_t **pokemon,
+			struct ataque **ataque)
 {
 	size_t posicion_pokemon;
-	cargar_posiciones(&posicion_pokemon, 1, lista_tamanio(adversario->pokemones));
-	*pokemon = lista_elemento_en_posicion(adversario->pokemones, posicion_pokemon);
+	cargar_posiciones(&posicion_pokemon, 1,
+			  lista_tamanio(adversario->pokemones));
+	*pokemon = lista_elemento_en_posicion(adversario->pokemones,
+					      posicion_pokemon);
 
 	struct paquete paquete = { .tamanio = 0 };
 	con_cada_ataque(*pokemon, adversario_cargar_ataques, &paquete);
@@ -101,14 +104,16 @@ void seleccionar_jugada(adversario_t *adversario, pokemon_t **pokemon, struct at
 	cargar_posiciones(&posicion_ataque, 1, MAX_ATAQUES);
 
 	int i = 0;
-	while (!abb_buscar(adversario->ataques, paquete.ataques[posicion_ataque]) && i < MAX_ATAQUES) {
+	while (!abb_buscar(adversario->ataques,
+			   paquete.ataques[posicion_ataque]) &&
+	       i < MAX_ATAQUES) {
 		cargar_posiciones(&posicion_ataque, 1, MAX_ATAQUES);
 		i++;
 	}
 	*ataque = paquete.ataques[posicion_ataque];
-	
+
 	if (i == MAX_ATAQUES)
-		seleccionar_jugada(adversario, pokemon, ataque);	
+		seleccionar_jugada(adversario, pokemon, ataque);
 }
 
 adversario_t *adversario_crear(lista_t *pokemon)
@@ -116,7 +121,8 @@ adversario_t *adversario_crear(lista_t *pokemon)
 	if (!pokemon)
 		return NULL;
 
-	adversario_t *adversario = calloc(CANTIDAD_ADVERSARIOS, sizeof(struct adversario));
+	adversario_t *adversario =
+		calloc(CANTIDAD_ADVERSARIOS, sizeof(struct adversario));
 	if (!adversario)
 		return NULL;
 	adversario->pokemones_disponibles = pokemon;

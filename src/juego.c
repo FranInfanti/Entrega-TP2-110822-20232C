@@ -109,7 +109,7 @@ bool guardar_pokemones(juego_t *juego, JUGADOR jugador, pokemon_t **pokemones,
 				jugador ? juego->jugador2.ataques_disponibles :
 					  juego->jugador1.ataques_disponibles);
 	}
-	
+
 	hash_insertar(!jugador ? juego->jugador2.pokemones :
 				 juego->jugador1.pokemones,
 		      pokemon_nombre(pokemones[tamanio - 1]),
@@ -312,7 +312,7 @@ resultado_jugada_t juego_jugar_turno(juego_t *juego, jugada_t jugada_jugador1,
 		determinar_puntos((int)ataque_jugador1->poder, jugada.jugador1);
 	juego->jugador2.puntos +=
 		determinar_puntos((int)ataque_jugador2->poder, jugada.jugador2);
-	
+
 	juego->ronda++;
 	return jugada;
 }
